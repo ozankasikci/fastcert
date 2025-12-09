@@ -295,6 +295,27 @@ pub fn write_pkcs12_file(
     Ok(())
 }
 
+/// Print certificate hosts with warnings
+pub fn print_hosts(hosts: &[String]) {
+    let second_level_wildcard_regex = Regex::new(r"(?i)^\*\.[0-9a-z_-]+$").unwrap();
+
+    println!("\nCreated a new certificate valid for the following names 📜");
+    for host in hosts {
+        println!(" - {:?}", host);
+        if second_level_wildcard_regex.is_match(host) {
+            println!("   Warning: many browsers don't support second-level wildcards like {:?} ⚠️", host);
+        }
+    }
+
+    // Check for any wildcards and print reminder
+    for host in hosts {
+        if host.starts_with("*.") {
+            println!("\nReminder: X.509 wildcards only go one level deep, so this won't match a.b.{} ℹ️", &host[2..]);
+            break;
+        }
+    }
+}
+
 /// Generate and save a new certificate signed by the CA
 /// This is the main certificate generation function that orchestrates everything
 pub fn generate_certificate(
@@ -368,6 +389,26 @@ pub fn generate_certificate(
         // PKCS#12 mode
         write_pkcs12_file(&p12_file, &cert_der, &key_pair, &ca_cert_der)?;
     }
+
+    // Print certificate information
+    print_hosts(&config.hosts);
+
+    // Print file paths
+    if !config.pkcs12 {
+        if cert_file == key_file {
+            println!("\nThe certificate and key are at {:?} ✅\n", cert_file);
+        } else {
+            println!("\nThe certificate is at {:?} and the key at {:?} ✅\n", cert_file, key_file);
+        }
+    } else {
+        println!("\nThe PKCS#12 bundle is at {:?} ✅", p12_file);
+        println!("\nThe legacy PKCS#12 encryption password is the often hardcoded default \"changeit\" ℹ️\n");
+    }
+
+    // Print expiration date
+    let expiration = OffsetDateTime::now_utc() + Duration::days(730 + 90);
+    println!("It will expire on {} 🗓\n", expiration.format(&time::format_description::well_known::Rfc2822)
+        .unwrap_or_else(|_| format!("{}", expiration)));
 
     Ok(())
 }
