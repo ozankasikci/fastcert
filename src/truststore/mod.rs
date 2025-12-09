@@ -46,15 +46,13 @@ pub fn uninstall_linux(cert_path: &Path) -> Result<()> {
 }
 
 #[cfg(target_os = "windows")]
-pub fn install_windows(_cert_path: &Path) -> Result<()> {
-    println!("Note: Windows trust store installation not yet implemented.");
-    println!("Please manually import the CA certificate into the Windows Certificate Store.");
-    Ok(())
+pub fn install_windows(cert_path: &Path) -> Result<()> {
+    let store = windows::WindowsTrustStore::new(cert_path);
+    store.install()
 }
 
 #[cfg(target_os = "windows")]
-pub fn uninstall_windows(_cert_path: &Path) -> Result<()> {
-    println!("Note: Windows trust store uninstallation not yet implemented.");
-    println!("Please manually remove the CA certificate from the Windows Certificate Store.");
-    Ok(())
+pub fn uninstall_windows(cert_path: &Path) -> Result<()> {
+    let store = windows::WindowsTrustStore::new(cert_path);
+    store.uninstall()
 }
