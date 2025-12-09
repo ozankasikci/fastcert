@@ -112,6 +112,24 @@ impl WindowsRootStore {
             Ok(false)
         }
     }
+
+    fn add_cert(&self, cert_der: &[u8]) -> Result<()> {
+        unsafe {
+            let result = CertAddEncodedCertificateToStore(
+                self.handle,
+                X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                cert_der,
+                CERT_STORE_ADD_REPLACE_EXISTING,
+                None,
+            )?;
+
+            if !result.as_bool() {
+                return Err(Error::TrustStore("Failed to add certificate to store".to_string()));
+            }
+
+            Ok(())
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -131,8 +149,27 @@ impl TrustStore for WindowsTrustStore {
         self.is_installed()
     }
 
+    #[cfg(target_os = "windows")]
     fn install(&self) -> Result<()> {
+        if self.is_installed()? {
+            println!("The local CA certificate is already installed in the Windows certificate store.");
+            return Ok(());
+        }
+
+        println!("Installing CA certificate to Windows certificate store...");
+        println!("Note: This will require administrator privileges.");
+
+        let cert_der = self.load_cert_der()?;
+        let store = self.open_root_store()?;
+        store.add_cert(&cert_der)?;
+
+        println!("The local CA certificate is now installed in the Windows certificate store.");
         Ok(())
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn install(&self) -> Result<()> {
+        Err(Error::TrustStore("Windows trust store is only available on Windows".to_string()))
     }
 
     fn uninstall(&self) -> Result<()> {
