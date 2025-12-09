@@ -80,6 +80,12 @@ impl TrustStore for MacOSTrustStore {
     }
 
     fn install(&self) -> Result<()> {
+        // Check if already installed
+        if self.is_installed()? {
+            println!("The local CA certificate is already installed in the macOS keychain.");
+            return Ok(());
+        }
+
         println!("Installing CA certificate to macOS keychain...");
         println!("Note: This will require administrator privileges.");
 
@@ -97,6 +103,15 @@ impl TrustStore for MacOSTrustStore {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("User interaction is not allowed") {
+                return Err(Error::TrustStore(
+                    "Failed to add certificate: User cancelled the operation or authorization failed".to_string()
+                ));
+            } else if stderr.contains("The authorization was denied") {
+                return Err(Error::TrustStore(
+                    "Failed to add certificate: Administrator authorization was denied".to_string()
+                ));
+            }
             return Err(Error::TrustStore(format!(
                 "Failed to add certificate to keychain: {}",
                 stderr
@@ -108,6 +123,12 @@ impl TrustStore for MacOSTrustStore {
     }
 
     fn uninstall(&self) -> Result<()> {
+        // Check if not installed
+        if !self.is_installed()? {
+            println!("The local CA certificate is not installed in the macOS keychain.");
+            return Ok(());
+        }
+
         println!("Removing CA certificate from macOS keychain...");
         println!("Note: This will require administrator privileges.");
 
@@ -123,6 +144,18 @@ impl TrustStore for MacOSTrustStore {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("User interaction is not allowed") {
+                return Err(Error::TrustStore(
+                    "Failed to remove certificate: User cancelled the operation or authorization failed".to_string()
+                ));
+            } else if stderr.contains("The authorization was denied") {
+                return Err(Error::TrustStore(
+                    "Failed to remove certificate: Administrator authorization was denied".to_string()
+                ));
+            } else if stderr.contains("The specified item could not be found") {
+                println!("The local CA certificate was not found in the macOS keychain.");
+                return Ok(());
+            }
             return Err(Error::TrustStore(format!(
                 "Failed to remove certificate from keychain: {}",
                 stderr
