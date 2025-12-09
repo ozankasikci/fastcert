@@ -5,6 +5,36 @@ use super::TrustStore;
 use std::path::Path;
 use std::process::Command;
 
+// Trust settings plist data for SSL and basicX509 policies
+// This ensures the certificate is trusted for SSL server authentication
+const TRUST_SETTINGS_PLIST: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>kSecTrustSettingsPolicy</key>
+		<data>
+		KoZIhvdjZAED
+		</data>
+		<key>kSecTrustSettingsPolicyName</key>
+		<string>sslServer</string>
+		<key>kSecTrustSettingsResult</key>
+		<integer>1</integer>
+	</dict>
+	<dict>
+		<key>kSecTrustSettingsPolicy</key>
+		<data>
+		KoZIhvdjZAEC
+		</data>
+		<key>kSecTrustSettingsPolicyName</key>
+		<string>basicX509</string>
+		<key>kSecTrustSettingsResult</key>
+		<integer>1</integer>
+	</dict>
+</array>
+</plist>
+"#;
+
 pub struct MacOSTrustStore {
     cert_path: String,
 }
