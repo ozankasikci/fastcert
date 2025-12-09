@@ -164,6 +164,37 @@ impl TrustStore for JavaTrustStore {
     }
 
     fn install(&self) -> Result<()> {
+        if !Self::has_keytool() {
+            return Err(Error::TrustStore("keytool not found. Please set JAVA_HOME".to_string()));
+        }
+
+        let config = Self::detect_java()
+            .ok_or_else(|| Error::TrustStore("Java not found".to_string()))?;
+
+        let cacerts_str = config.cacerts_path.to_str()
+            .ok_or_else(|| Error::TrustStore("Invalid cacerts path".to_string()))?;
+
+        let cert_path_str = self.cert_path.to_str()
+            .ok_or_else(|| Error::TrustStore("Invalid certificate path".to_string()))?;
+
+        let args = vec![
+            "-importcert",
+            "-noprompt",
+            "-keystore", cacerts_str,
+            "-storepass", "changeit",
+            "-file", cert_path_str,
+            "-alias", &self.unique_name,
+        ];
+
+        let output = Self::exec_keytool(&args)?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::TrustStore(format!(
+                "Failed to install certificate in Java keystore: {}",
+                stderr
+            )));
+        }
+
         Ok(())
     }
 
