@@ -50,6 +50,27 @@ impl TrustStore for MacOSTrustStore {
     }
 
     fn install(&self) -> Result<()> {
+        // Add the certificate as a trusted cert to the system keychain
+        let output = self.run_security_command(
+            &[
+                "add-trusted-cert",
+                "-d",
+                "-k",
+                "/Library/Keychains/System.keychain",
+                &self.cert_path,
+            ],
+            true,
+        )?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::TrustStore(format!(
+                "Failed to add certificate to keychain: {}",
+                stderr
+            )));
+        }
+
+        println!("The local CA certificate is now installed in the macOS keychain.");
         Ok(())
     }
 
