@@ -27,3 +27,33 @@ impl CertificateConfig {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum HostType {
+    DnsName(String),
+    IpAddress(IpAddr),
+    Email(String),
+    Uri(String),
+}
+
+impl HostType {
+    pub fn parse(host: &str) -> Result<Self> {
+        // Try IP address
+        if let Ok(ip) = host.parse::<IpAddr>() {
+            return Ok(HostType::IpAddress(ip));
+        }
+
+        // Try email (simple check)
+        if host.contains('@') && host.contains('.') {
+            return Ok(HostType::Email(host.to_string()));
+        }
+
+        // Try URI (has scheme)
+        if host.contains("://") {
+            return Ok(HostType::Uri(host.to_string()));
+        }
+
+        // Default to DNS name
+        Ok(HostType::DnsName(host.to_string()))
+    }
+}
