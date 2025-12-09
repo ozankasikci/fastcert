@@ -346,4 +346,27 @@ mod tests {
         // Cleanup
         fs::remove_dir_all(temp_dir).unwrap();
     }
+
+    #[test]
+    fn test_ca_install_integration() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        unsafe {
+            std::env::set_var("CAROOT", temp_dir.path().to_str().unwrap());
+        }
+
+        let mut ca = CertificateAuthority::new(temp_dir.path().to_path_buf());
+        ca.load_or_create().unwrap();
+
+        assert!(ca.cert_exists(), "CA certificate should be created");
+        assert!(ca.key_exists(), "CA key should be created");
+
+        let cert_pem = fs::read_to_string(&ca.cert_path()).unwrap();
+        assert!(cert_pem.contains("BEGIN CERTIFICATE"), "Certificate should be in PEM format");
+
+        unsafe {
+            std::env::remove_var("CAROOT");
+        }
+    }
 }
