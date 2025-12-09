@@ -50,6 +50,22 @@ impl CertificateAuthority {
     pub fn key_exists(&self) -> bool {
         self.key_path().exists()
     }
+
+    pub fn create_ca(&mut self) -> Result<()> {
+        let keypair = generate_ca_keypair()?;
+        let params = create_ca_params(keypair)?;
+
+        let cert = Certificate::from_params(params)
+            .map_err(|e| Error::Certificate(format!("Failed to create CA cert: {}", e)))?;
+
+        let cert_pem = cert.serialize_pem()
+            .map_err(|e| Error::Certificate(format!("Failed to serialize cert: {}", e)))?;
+
+        self.cert = Some(cert);
+        self.cert_pem = Some(cert_pem);
+
+        Ok(())
+    }
 }
 
 fn generate_ca_keypair() -> Result<KeyPair> {
@@ -71,7 +87,7 @@ fn get_user_and_hostname() -> String {
     format!("{}@{}", username, hostname)
 }
 
-fn create_ca_params() -> Result<CertificateParams> {
+fn create_ca_params(keypair: KeyPair) -> Result<CertificateParams> {
     let user_host = get_user_and_hostname();
 
     let mut params = CertificateParams::default();
@@ -92,6 +108,8 @@ fn create_ca_params() -> Result<CertificateParams> {
         rcgen::KeyUsagePurpose::KeyCertSign,
         rcgen::KeyUsagePurpose::CrlSign,
     ];
+
+    params.key_pair = Some(keypair);
 
     Ok(params)
 }
