@@ -33,6 +33,18 @@ pub fn uninstall_macos(cert_path: &Path) -> Result<()> {
     store.uninstall()
 }
 
+#[cfg(target_os = "linux")]
+pub fn install_linux(cert_path: &Path) -> Result<()> {
+    let store = linux::LinuxTrustStore::new(cert_path);
+    store.install()
+}
+
+#[cfg(target_os = "linux")]
+pub fn uninstall_linux(cert_path: &Path) -> Result<()> {
+    let store = linux::LinuxTrustStore::new(cert_path);
+    store.uninstall()
+}
+
 #[cfg(target_os = "windows")]
 pub fn install_windows(_cert_path: &Path) -> Result<()> {
     println!("Note: Windows trust store installation not yet implemented.");

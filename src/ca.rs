@@ -62,12 +62,17 @@ pub fn install() -> Result<()> {
         crate::truststore::install_macos(&ca.cert_path())?;
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        crate::truststore::install_linux(&ca.cert_path())?;
+    }
+
     #[cfg(target_os = "windows")]
     {
         crate::truststore::install_windows(&ca.cert_path())?;
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         println!("Note: System trust store installation not yet implemented for this platform.");
         println!("You may need to manually import the CA certificate from: {}", ca.cert_path().display());
@@ -91,12 +96,17 @@ pub fn uninstall() -> Result<()> {
         crate::truststore::uninstall_macos(&ca.cert_path())?;
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        crate::truststore::uninstall_linux(&ca.cert_path())?;
+    }
+
     #[cfg(target_os = "windows")]
     {
         crate::truststore::uninstall_windows(&ca.cert_path())?;
     }
 
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         println!("Note: System trust store uninstallation not yet implemented for this platform.");
         println!("You may need to manually remove the CA certificate from your system trust store.");
