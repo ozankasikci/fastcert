@@ -67,6 +67,10 @@ struct Cli {
     #[arg(long)]
     ecdsa: bool,
 
+    /// Generate a PKCS#12 file (also known as .pfx) containing certificate and key
+    #[arg(long)]
+    pkcs12: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
