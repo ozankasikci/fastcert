@@ -207,6 +207,51 @@ impl TrustStore for LinuxTrustStore {
     }
 
     fn uninstall(&self) -> Result<()> {
+        // Check if distribution is supported
+        if self.distro == LinuxDistro::Unknown {
+            println!("The local CA certificate is not installed in the system trust store.");
+            return Ok(());
+        }
+
+        // Check if not installed
+        if !self.check()? {
+            println!("The local CA certificate is not installed in the system trust store.");
+            return Ok(());
+        }
+
+        println!("Removing CA certificate from Linux system trust store...");
+        println!("Note: This will require administrator privileges.");
+
+        // Get the target path
+        let sys_path = self.system_cert_path()
+            .ok_or_else(|| Error::TrustStore("Failed to determine system certificate path".to_string()))?;
+
+        // Remove the certificate file
+        let sys_path_str = sys_path.to_string_lossy();
+        let output = self.run_with_sudo(&["rm", "-f", sys_path_str.as_ref()])?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::TrustStore(format!(
+                "Failed to remove certificate from system trust store: {}",
+                stderr
+            )));
+        }
+
+        // Run the update command for the distribution
+        if let Some(update_cmd) = self.distro.update_command() {
+            let output = self.run_with_sudo(&update_cmd)?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(Error::TrustStore(format!(
+                    "Failed to update system trust store: {}",
+                    stderr
+                )));
+            }
+        }
+
+        println!("The local CA certificate has been removed from the system trust store.");
         Ok(())
     }
 }
