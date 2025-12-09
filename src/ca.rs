@@ -13,6 +13,104 @@ use std::os::unix::fs::PermissionsExt;
 const ROOT_CERT_FILE: &str = "rootCA.pem";
 const ROOT_KEY_FILE: &str = "rootCA-key.pem";
 
+/// Get the CAROOT directory path
+pub fn get_caroot() -> Result<String> {
+    let caroot = get_caroot_path()?;
+    Ok(caroot.display().to_string())
+}
+
+/// Get the CAROOT directory path as PathBuf
+fn get_caroot_path() -> Result<PathBuf> {
+    // Check CAROOT environment variable
+    if let Ok(caroot) = std::env::var("CAROOT") {
+        return Ok(PathBuf::from(caroot));
+    }
+
+    // Get default location based on platform
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(home) = dirs::home_dir() {
+            return Ok(home.join("Library").join("Application Support").join("rscert"));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(local_app_data) = dirs::data_local_dir() {
+            return Ok(local_app_data.join("rscert"));
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        if let Some(data_dir) = dirs::data_dir() {
+            return Ok(data_dir.join("rscert"));
+        }
+    }
+
+    Err(Error::Certificate("Could not determine CAROOT directory".to_string()))
+}
+
+/// Install the CA certificate into the system trust store
+pub fn install() -> Result<()> {
+    let caroot = get_caroot_path()?;
+    let mut ca = CertificateAuthority::new(caroot);
+    ca.load_or_create()?;
+
+    #[cfg(target_os = "macos")]
+    {
+        crate::truststore::install_macos(&ca.cert_path())?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        crate::truststore::install_windows(&ca.cert_path())?;
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        println!("Note: System trust store installation not yet implemented for this platform.");
+        println!("You may need to manually import the CA certificate from: {}", ca.cert_path().display());
+    }
+
+    Ok(())
+}
+
+/// Uninstall the CA certificate from the system trust store
+pub fn uninstall() -> Result<()> {
+    let caroot = get_caroot_path()?;
+    let ca = CertificateAuthority::new(caroot);
+
+    if !ca.cert_exists() {
+        println!("No CA certificate found to uninstall.");
+        return Ok(());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        crate::truststore::uninstall_macos(&ca.cert_path())?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        crate::truststore::uninstall_windows(&ca.cert_path())?;
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        println!("Note: System trust store uninstallation not yet implemented for this platform.");
+        println!("You may need to manually remove the CA certificate from your system trust store.");
+    }
+
+    Ok(())
+}
+
+/// Get the CertificateAuthority for the default CAROOT
+pub fn get_ca() -> Result<CertificateAuthority> {
+    let caroot = get_caroot_path()?;
+    Ok(CertificateAuthority::new(caroot))
+}
+
 pub struct CertificateAuthority {
     root_path: PathBuf,
     cert: Option<Certificate>,

@@ -316,9 +316,79 @@ pub fn print_hosts(hosts: &[String]) {
     }
 }
 
+/// Generate certificate from command line arguments - main entry point
+pub fn generate_certificate(
+    domains: &[String],
+    cert_file: Option<&str>,
+    key_file: Option<&str>,
+    p12_file: Option<&str>,
+    client: bool,
+    ecdsa: bool,
+    pkcs12: bool,
+) -> Result<()> {
+    // Load CA
+    let caroot = crate::ca::get_caroot()?;
+    let mut ca = crate::ca::CertificateAuthority::new(PathBuf::from(caroot));
+    ca.load_or_create()?;
+
+    // Get CA certificate for signing
+    let ca_cert_pem = std::fs::read_to_string(ca.cert_path())?;
+    let ca_key_pem = std::fs::read_to_string(ca.key_path())?;
+
+    // Parse CA cert and key to create an rcgen Certificate
+    let ca_cert = load_ca_cert_for_signing(&ca_cert_pem, &ca_key_pem)?;
+
+    // Build config
+    let mut config = CertificateConfig::new(domains.to_vec());
+    config.client_cert = client;
+    config.use_ecdsa = ecdsa;
+    config.pkcs12 = pkcs12;
+    config.cert_file = cert_file.map(PathBuf::from);
+    config.key_file = key_file.map(PathBuf::from);
+    config.p12_file = p12_file.map(PathBuf::from);
+
+    // Generate the certificate
+    generate_certificate_internal(&config, &ca_cert)
+}
+
+/// Generate certificate from CSR
+pub fn generate_from_csr(
+    _csr_path: &str,
+    _cert_file: Option<&str>,
+) -> Result<()> {
+    // TODO: Implement CSR support
+    Err(Error::Certificate("CSR support not yet implemented".to_string()))
+}
+
+/// Load CA certificate for signing (internal helper)
+fn load_ca_cert_for_signing(_cert_pem: &str, key_pem: &str) -> Result<rcgen::Certificate> {
+    // Parse the PEM-encoded private key
+    let key_pair = KeyPair::from_pem(key_pem)
+        .map_err(|e| Error::Certificate(format!("Failed to parse CA key: {}", e)))?;
+
+    // Create CA certificate params with the loaded key
+    let mut params = CertificateParams::default();
+    params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+    params.key_usages = vec![
+        KeyUsagePurpose::KeyCertSign,
+        KeyUsagePurpose::CrlSign,
+    ];
+
+    // Set validity period (10 years like the CA)
+    let now = OffsetDateTime::now_utc();
+    params.not_before = now;
+    params.not_after = now + Duration::days(3650);
+
+    // Create certificate from params and key pair
+    let cert = rcgen::Certificate::from_params(params)
+        .map_err(|e| Error::Certificate(format!("Failed to create CA cert for signing: {}", e)))?;
+
+    Ok(cert)
+}
+
 /// Generate and save a new certificate signed by the CA
 /// This is the main certificate generation function that orchestrates everything
-pub fn generate_certificate(
+fn generate_certificate_internal(
     config: &CertificateConfig,
     ca_cert: &rcgen::Certificate,
 ) -> Result<()> {
@@ -560,7 +630,7 @@ mod tests {
         config.key_file = Some(key_path.clone());
 
         // Generate the certificate
-        let result = generate_certificate(&config, &ca_cert);
+        let result = generate_certificate_internal(&config, &ca_cert);
         assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
 
         // Verify files were created
@@ -614,7 +684,7 @@ mod tests {
         config.cert_file = Some(combined_path.clone());
         config.key_file = Some(combined_path.clone());
 
-        let result = generate_certificate(&config, &ca_cert);
+        let result = generate_certificate_internal(&config, &ca_cert);
         assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
 
         assert!(combined_path.exists(), "Combined file was not created");
