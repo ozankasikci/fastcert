@@ -13,6 +13,10 @@ struct Cli {
     #[arg(long)]
     uninstall: bool,
 
+    /// Print the CA certificate and key storage location
+    #[arg(long = "CAROOT")]
+    caroot: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
