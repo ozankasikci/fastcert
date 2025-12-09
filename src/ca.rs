@@ -110,6 +110,20 @@ impl CertificateAuthority {
 
         Ok(())
     }
+
+    pub fn load_or_create(&mut self) -> Result<()> {
+        self.init()?;
+
+        if self.cert_exists() {
+            self.load()?;
+        } else {
+            self.create_ca()?;
+            self.save()?;
+            println!("Created a new local CA 💥");
+        }
+
+        Ok(())
+    }
 }
 
 fn generate_ca_keypair() -> Result<KeyPair> {
