@@ -91,6 +91,7 @@ pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
         match host_type {
             HostType::DnsName(name) => {
                 validate_hostname(&name)?;
+                check_wildcard_warning(&name);
                 san_list.push(SanType::DnsName(name));
             }
             HostType::IpAddress(ip) => {
@@ -106,6 +107,20 @@ pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
     }
 
     Ok(san_list)
+}
+
+/// Check for wildcard certificates and log warnings
+fn check_wildcard_warning(name: &str) {
+    // Check for second-level wildcards (e.g., *.com, *.net)
+    let second_level_wildcard_regex = Regex::new(r"(?i)^\*\.[0-9a-z_-]+$").unwrap();
+    if second_level_wildcard_regex.is_match(name) {
+        eprintln!("Warning: many browsers don't support second-level wildcards like \"{}\"", name);
+    }
+
+    // General wildcard reminder
+    if name.starts_with("*.") {
+        eprintln!("Reminder: X.509 wildcards only go one level deep, so this won't match a.b.{}", &name[2..]);
+    }
 }
 
 #[cfg(test)]
