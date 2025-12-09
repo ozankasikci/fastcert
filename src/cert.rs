@@ -389,6 +389,77 @@ pub fn validate_csr_signature(csr: &x509_parser::certification_request::X509Cert
     Ok(())
 }
 
+/// Extract subject alternative names from CSR
+pub fn extract_san_from_csr(csr: &x509_parser::certification_request::X509CertificationRequest) -> Result<Vec<String>> {
+    use x509_parser::prelude::*;
+    use x509_parser::extensions::GeneralName;
+
+    let mut hosts = Vec::new();
+
+    // First, try to get SANs from the requested extensions
+    for attr in csr.certification_request_info.attributes.iter() {
+        // Extension request OID: 1.2.840.113549.1.9.14
+        if attr.oid.to_string() == "1.2.840.113549.1.9.14" {
+            // Parse the extension request
+            if let Ok((_, extensions)) = parse_der_sequence_of(attr.value.as_bytes()) {
+                for ext_data in extensions {
+                    if let Ok((_, extension)) = X509Extension::from_der(ext_data) {
+                        // Subject Alternative Name OID: 2.5.29.17
+                        if extension.oid.to_string() == "2.5.29.17" {
+                            if let ParsedExtension::SubjectAlternativeName(san) = extension.parsed_extension() {
+                                for name in &san.general_names {
+                                    match name {
+                                        GeneralName::DNSName(dns) => {
+                                            hosts.push(dns.to_string());
+                                        }
+                                        GeneralName::RFC822Name(email) => {
+                                            hosts.push(email.to_string());
+                                        }
+                                        GeneralName::IPAddress(ip_bytes) => {
+                                            if ip_bytes.len() == 4 {
+                                                let ip = std::net::Ipv4Addr::new(
+                                                    ip_bytes[0],
+                                                    ip_bytes[1],
+                                                    ip_bytes[2],
+                                                    ip_bytes[3],
+                                                );
+                                                hosts.push(ip.to_string());
+                                            } else if ip_bytes.len() == 16 {
+                                                let ip = std::net::Ipv6Addr::from([
+                                                    ip_bytes[0], ip_bytes[1], ip_bytes[2], ip_bytes[3],
+                                                    ip_bytes[4], ip_bytes[5], ip_bytes[6], ip_bytes[7],
+                                                    ip_bytes[8], ip_bytes[9], ip_bytes[10], ip_bytes[11],
+                                                    ip_bytes[12], ip_bytes[13], ip_bytes[14], ip_bytes[15],
+                                                ]);
+                                                hosts.push(ip.to_string());
+                                            }
+                                        }
+                                        GeneralName::URI(uri) => {
+                                            hosts.push(uri.to_string());
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // If no SANs found, use the Common Name from the subject
+    if hosts.is_empty() {
+        if let Some(cn) = csr.certification_request_info.subject.iter_common_name().next() {
+            if let Ok(cn_str) = cn.as_str() {
+                hosts.push(cn_str.to_string());
+            }
+        }
+    }
+
+    Ok(hosts)
+}
+
 /// Generate certificate from CSR
 pub fn generate_from_csr(
     _csr_path: &str,
