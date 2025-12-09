@@ -326,11 +326,15 @@ pub fn generate_certificate(
         return Err(Error::Certificate("No hosts specified".to_string()));
     }
 
-    // Generate keypair for the certificate
-    let key_pair = generate_keypair(config.use_ecdsa)?;
-
     // Create certificate parameters
     let mut params = create_cert_params(&config.hosts)?;
+
+    // Set algorithm based on config
+    if config.use_ecdsa {
+        params.alg = &PKCS_ECDSA_P256_SHA256;
+    } else {
+        params.alg = &PKCS_RSA_SHA256;
+    }
 
     // Set extended key usage based on certificate type
     if config.client_cert {
@@ -364,13 +368,16 @@ pub fn generate_certificate(
         );
     }
 
-    // Create the certificate with the CA as the issuer
+    // Create the certificate (this generates the keypair automatically)
     let cert = rcgen::Certificate::from_params(params)
         .map_err(|e| Error::Certificate(format!("Failed to create certificate: {}", e)))?;
 
     // Serialize the certificate signed by CA
     let cert_der = cert.serialize_der_with_signer(ca_cert)
         .map_err(|e| Error::Certificate(format!("Failed to sign certificate: {}", e)))?;
+
+    // Get the key pair from the certificate
+    let key_pair = cert.get_key_pair();
 
     // Get CA cert DER for PKCS#12
     let ca_cert_der = ca_cert.serialize_der()
@@ -383,11 +390,11 @@ pub fn generate_certificate(
     if !config.pkcs12 {
         // PEM mode
         let cert_pem = cert_to_pem(&cert_der);
-        let key_pem = key_to_pem(&key_pair)?;
+        let key_pem = key_to_pem(key_pair)?;
         write_pem_files(&cert_file, &key_file, &cert_pem, &key_pem)?;
     } else {
         // PKCS#12 mode
-        write_pkcs12_file(&p12_file, &cert_der, &key_pair, &ca_cert_der)?;
+        write_pkcs12_file(&p12_file, &cert_der, key_pair, &ca_cert_der)?;
     }
 
     // Print certificate information
@@ -514,5 +521,113 @@ mod tests {
         assert_eq!(cert, PathBuf::from("/tmp/custom.crt"));
         assert_eq!(key, PathBuf::from("/tmp/custom.key"));
         assert_eq!(p12, PathBuf::from("/tmp/custom.p12"));
+    }
+
+    #[test]
+    fn test_certificate_generation_integration() {
+        use std::fs;
+        use tempfile::TempDir;
+
+        // Create a temporary directory for test files
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path();
+
+        // Create a CA certificate for signing (use ECDSA since ring doesn't support RSA key generation)
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(
+                rcgen::DnType::CommonName,
+                "Test CA"
+            );
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        // Configure certificate generation (use ECDSA)
+        let mut config = CertificateConfig::new(vec![
+            "example.com".to_string(),
+            "www.example.com".to_string(),
+            "127.0.0.1".to_string(),
+        ]);
+        config.use_ecdsa = true;
+
+        let cert_path = temp_path.join("example.com+2.pem");
+        let key_path = temp_path.join("example.com+2-key.pem");
+
+        config.cert_file = Some(cert_path.clone());
+        config.key_file = Some(key_path.clone());
+
+        // Generate the certificate
+        let result = generate_certificate(&config, &ca_cert);
+        assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
+
+        // Verify files were created
+        assert!(cert_path.exists(), "Certificate file was not created");
+        assert!(key_path.exists(), "Key file was not created");
+
+        // Verify file contents
+        let cert_pem = fs::read_to_string(&cert_path).unwrap();
+        let key_pem = fs::read_to_string(&key_path).unwrap();
+
+        assert!(cert_pem.contains("BEGIN CERTIFICATE"), "Certificate PEM is invalid");
+        assert!(key_pem.contains("BEGIN PRIVATE KEY"), "Private key PEM is invalid");
+
+        // Verify file permissions on Unix
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let cert_perms = fs::metadata(&cert_path).unwrap().permissions();
+            let key_perms = fs::metadata(&key_path).unwrap().permissions();
+
+            assert_eq!(cert_perms.mode() & 0o777, 0o644, "Certificate permissions incorrect");
+            assert_eq!(key_perms.mode() & 0o777, 0o600, "Key permissions incorrect");
+        }
+    }
+
+    #[test]
+    fn test_certificate_generation_combined_file() {
+        use std::fs;
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path();
+
+        // Use ECDSA since ring doesn't support RSA key generation
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(
+                rcgen::DnType::CommonName,
+                "Test CA"
+            );
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        let mut config = CertificateConfig::new(vec!["localhost".to_string()]);
+        config.use_ecdsa = true;
+        let combined_path = temp_path.join("localhost-combined.pem");
+
+        config.cert_file = Some(combined_path.clone());
+        config.key_file = Some(combined_path.clone());
+
+        let result = generate_certificate(&config, &ca_cert);
+        assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
+
+        assert!(combined_path.exists(), "Combined file was not created");
+
+        let combined_pem = fs::read_to_string(&combined_path).unwrap();
+        assert!(combined_pem.contains("BEGIN CERTIFICATE"), "Combined file missing certificate");
+        assert!(combined_pem.contains("BEGIN PRIVATE KEY"), "Combined file missing key");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let perms = fs::metadata(&combined_path).unwrap().permissions();
+            assert_eq!(perms.mode() & 0o777, 0o600, "Combined file permissions should be 0600");
+        }
     }
 }
