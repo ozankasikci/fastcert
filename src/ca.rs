@@ -2,9 +2,13 @@
 
 use crate::{Error, Result};
 use std::path::{Path, PathBuf};
-use std::fs;
+use std::fs::{self, File};
+use std::io::Write;
 use rcgen::{Certificate, CertificateParams, KeyPair, PKCS_RSA_SHA256, DistinguishedName, DnType, IsCa, BasicConstraints};
 use time::{OffsetDateTime, Duration};
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 const ROOT_CERT_FILE: &str = "rootCA.pem";
 const ROOT_KEY_FILE: &str = "rootCA-key.pem";
@@ -63,6 +67,31 @@ impl CertificateAuthority {
 
         self.cert = Some(cert);
         self.cert_pem = Some(cert_pem);
+
+        Ok(())
+    }
+
+    pub fn save(&self) -> Result<()> {
+        let cert_pem = self.cert_pem.as_ref()
+            .ok_or(Error::Certificate("No certificate to save".to_string()))?;
+
+        let cert = self.cert.as_ref()
+            .ok_or(Error::Certificate("No certificate to save".to_string()))?;
+
+        // Save certificate
+        let cert_path = self.cert_path();
+        let mut file = File::create(&cert_path)?;
+        file.write_all(cert_pem.as_bytes())?;
+        #[cfg(unix)]
+        fs::set_permissions(&cert_path, fs::Permissions::from_mode(0o644))?;
+
+        // Save private key
+        let key_pem = cert.serialize_private_key_pem();
+        let key_path = self.key_path();
+        let mut file = File::create(&key_path)?;
+        file.write_all(key_pem.as_bytes())?;
+        #[cfg(unix)]
+        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o400))?;
 
         Ok(())
     }
