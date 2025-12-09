@@ -2,6 +2,7 @@
 
 use crate::{Error, Result};
 use std::path::{Path, PathBuf};
+use std::fs;
 use rcgen::Certificate;
 
 const ROOT_CERT_FILE: &str = "rootCA.pem";
@@ -24,6 +25,13 @@ impl CertificateAuthority {
 
     pub fn root_path(&self) -> &Path {
         &self.root_path
+    }
+
+    pub fn init(&self) -> Result<()> {
+        if !self.root_path.exists() {
+            fs::create_dir_all(&self.root_path)?;
+        }
+        Ok(())
     }
 
     pub fn cert_path(&self) -> PathBuf {
