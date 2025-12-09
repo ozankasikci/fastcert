@@ -1,6 +1,7 @@
 //! Certificate generation
 
 use crate::{Error, Result};
+use rcgen::{KeyPair, PKCS_RSA_SHA256, PKCS_ECDSA_P256_SHA256};
 use regex::Regex;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -68,6 +69,17 @@ pub fn validate_hostname(hostname: &str) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn generate_keypair(use_ecdsa: bool) -> Result<KeyPair> {
+    let alg = if use_ecdsa {
+        &PKCS_ECDSA_P256_SHA256
+    } else {
+        &PKCS_RSA_SHA256
+    };
+
+    KeyPair::generate(alg)
+        .map_err(|e| Error::Certificate(format!("Key generation failed: {}", e)))
 }
 
 #[cfg(test)]
