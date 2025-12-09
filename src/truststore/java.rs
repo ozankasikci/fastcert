@@ -4,6 +4,7 @@ use crate::{Error, Result};
 use super::TrustStore;
 use std::path::{Path, PathBuf};
 use std::env;
+use std::process::Command;
 
 pub struct JavaTrustStore {
     cert_path: PathBuf,
@@ -66,6 +67,38 @@ impl JavaTrustStore {
         Self::detect_java()
             .map(|cfg| cfg.keytool_path.exists())
             .unwrap_or(false)
+    }
+
+    /// Execute keytool command
+    /// If the command fails with FileNotFoundException on Unix, retry with sudo
+    fn exec_keytool(args: &[&str]) -> Result<std::process::Output> {
+        let config = Self::detect_java()
+            .ok_or_else(|| Error::TrustStore("Java not found. Please set JAVA_HOME".to_string()))?;
+
+        let output = Command::new(&config.keytool_path)
+            .args(args)
+            .output()
+            .map_err(|e| Error::CommandFailed(format!("Failed to execute keytool: {}", e)))?;
+
+        // Check if we need to retry with sudo (FileNotFoundException on Unix)
+        #[cfg(unix)]
+        {
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                if stderr.contains("java.io.FileNotFoundException") {
+                    // Retry with sudo and set JAVA_HOME environment variable
+                    let output = Command::new("sudo")
+                        .arg(&config.keytool_path)
+                        .args(args)
+                        .env("JAVA_HOME", &config.java_home)
+                        .output()
+                        .map_err(|e| Error::CommandFailed(format!("Failed to execute keytool with sudo: {}", e)))?;
+                    return Ok(output);
+                }
+            }
+        }
+
+        Ok(output)
     }
 }
 
