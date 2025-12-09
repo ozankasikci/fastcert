@@ -95,6 +95,21 @@ impl CertificateAuthority {
 
         Ok(())
     }
+
+    pub fn load(&mut self) -> Result<()> {
+        let cert_path = self.cert_path();
+        if !cert_path.exists() {
+            return Err(Error::Certificate("CA certificate not found".to_string()));
+        }
+
+        let cert_pem = fs::read_to_string(&cert_path)?;
+        self.cert_pem = Some(cert_pem.clone());
+
+        // Parse certificate for later use
+        // Note: rcgen doesn't support loading certs, we'll store PEM for now
+
+        Ok(())
+    }
 }
 
 fn generate_ca_keypair() -> Result<KeyPair> {
