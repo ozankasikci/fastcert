@@ -42,3 +42,22 @@ impl CertificateAuthority {
         self.key_path().exists()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_ca_paths() {
+        let temp_dir = std::env::temp_dir().join("rscert_test_ca");
+        let ca = CertificateAuthority::new(temp_dir.clone());
+
+        assert_eq!(ca.root_path(), temp_dir.as_path());
+        assert_eq!(ca.cert_path(), temp_dir.join("rootCA.pem"));
+        assert_eq!(ca.key_path(), temp_dir.join("rootCA-key.pem"));
+
+        // Cleanup
+        let _ = fs::remove_dir_all(temp_dir);
+    }
+}
