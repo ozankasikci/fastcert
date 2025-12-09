@@ -1,7 +1,7 @@
 //! Certificate generation
 
 use crate::{Error, Result};
-use rcgen::{KeyPair, PKCS_RSA_SHA256, PKCS_ECDSA_P256_SHA256};
+use rcgen::{KeyPair, SanType, PKCS_RSA_SHA256, PKCS_ECDSA_P256_SHA256};
 use regex::Regex;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -80,6 +80,26 @@ fn generate_keypair(use_ecdsa: bool) -> Result<KeyPair> {
 
     KeyPair::generate(alg)
         .map_err(|e| Error::Certificate(format!("Key generation failed: {}", e)))
+}
+
+/// Build Subject Alternative Names from a list of host strings
+pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
+    let mut san_list = Vec::new();
+
+    for host in hosts {
+        let host_type = HostType::parse(host)?;
+        // We'll add the actual SAN conversion in subsequent commits
+        match host_type {
+            HostType::DnsName(name) => {
+                validate_hostname(&name)?;
+            }
+            HostType::IpAddress(_) => {}
+            HostType::Email(_) => {}
+            HostType::Uri(_) => {}
+        }
+    }
+
+    Ok(san_list)
 }
 
 #[cfg(test)]
