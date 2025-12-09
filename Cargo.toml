@@ -14,6 +14,7 @@ p12 = "0.6"
 dirs = "5.0"
 time = { version = "0.3", features = ["formatting", "macros"] }
 hostname = "0.3"
+regex = "1.10"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "2.9"

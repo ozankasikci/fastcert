@@ -1,6 +1,7 @@
 //! Certificate generation
 
 use crate::{Error, Result};
+use regex::Regex;
 use std::net::IpAddr;
 use std::path::PathBuf;
 
@@ -56,6 +57,17 @@ impl HostType {
         // Default to DNS name
         Ok(HostType::DnsName(host.to_string()))
     }
+}
+
+pub fn validate_hostname(hostname: &str) -> Result<()> {
+    let hostname_regex = Regex::new(r"(?i)^(\*\.)?[0-9a-z_-]([0-9a-z._-]*[0-9a-z_-])?$")
+        .unwrap();
+
+    if !hostname_regex.is_match(hostname) {
+        return Err(Error::InvalidHostname(hostname.to_string()));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
