@@ -11,3 +11,4 @@ rcgen = { version = "0.12", features = ["x509-parser"] }
 ring = "0.17"
 pem = "3.0"
 p12 = "0.6"
+dirs = "5.0"
