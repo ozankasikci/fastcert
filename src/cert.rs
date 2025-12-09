@@ -157,6 +157,13 @@ pub fn add_server_auth(params: &mut CertificateParams) {
     }
 }
 
+/// Add client authentication extended key usage
+pub fn add_client_auth(params: &mut CertificateParams) {
+    if !params.extended_key_usages.contains(&ExtendedKeyUsagePurpose::ClientAuth) {
+        params.extended_key_usages.push(ExtendedKeyUsagePurpose::ClientAuth);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
