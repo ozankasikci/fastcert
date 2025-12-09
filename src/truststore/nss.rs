@@ -279,6 +279,49 @@ impl TrustStore for NssTrustStore {
     }
 
     fn install(&self) -> Result<()> {
+        if !Self::has_certutil() {
+            return Err(Error::TrustStore("certutil not found. Please install NSS tools.".to_string()));
+        }
+
+        let profiles = Self::find_nss_profiles();
+        if profiles.is_empty() {
+            return Err(Error::TrustStore(
+                "No NSS security databases found. Please start Firefox at least once.".to_string()
+            ));
+        }
+
+        let cert_path_str = self.cert_path.to_str()
+            .ok_or_else(|| Error::TrustStore("Invalid certificate path".to_string()))?;
+
+        for (db_type, profile_path) in &profiles {
+            let db_arg = format!("{}:{}", db_type, profile_path.display());
+
+            let args = vec![
+                "-A",
+                "-d", &db_arg,
+                "-t", "C,,",
+                "-n", &self.unique_name,
+                "-i", cert_path_str,
+            ];
+
+            let output = Self::exec_certutil(&args)?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(Error::TrustStore(format!(
+                    "Failed to install certificate in NSS database {}: {}",
+                    profile_path.display(),
+                    stderr
+                )));
+            }
+        }
+
+        // Verify installation
+        if !self.check()? {
+            return Err(Error::TrustStore(
+                "Certificate installation verification failed. Please report this issue.".to_string()
+            ));
+        }
+
         Ok(())
     }
 
