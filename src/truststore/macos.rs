@@ -80,6 +80,9 @@ impl TrustStore for MacOSTrustStore {
     }
 
     fn install(&self) -> Result<()> {
+        println!("Installing CA certificate to macOS keychain...");
+        println!("Note: This will require administrator privileges.");
+
         // Add the certificate as a trusted cert to the system keychain
         let output = self.run_security_command(
             &[
@@ -105,6 +108,9 @@ impl TrustStore for MacOSTrustStore {
     }
 
     fn uninstall(&self) -> Result<()> {
+        println!("Removing CA certificate from macOS keychain...");
+        println!("Note: This will require administrator privileges.");
+
         // Remove the certificate from the system keychain
         let output = self.run_security_command(
             &[
