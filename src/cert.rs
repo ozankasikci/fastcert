@@ -380,6 +380,15 @@ pub fn parse_csr_pem(csr_bytes: &[u8]) -> Result<x509_parser::certification_requ
     Ok(csr)
 }
 
+/// Validate CSR signature
+pub fn validate_csr_signature(csr: &x509_parser::certification_request::X509CertificationRequest) -> Result<()> {
+    // Verify the signature on the CSR
+    csr.verify_signature()
+        .map_err(|e| Error::Certificate(format!("Invalid CSR signature: {}", e)))?;
+
+    Ok(())
+}
+
 /// Generate certificate from CSR
 pub fn generate_from_csr(
     _csr_path: &str,
