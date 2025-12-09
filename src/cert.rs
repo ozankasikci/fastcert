@@ -88,10 +88,10 @@ pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
 
     for host in hosts {
         let host_type = HostType::parse(host)?;
-        // We'll add the actual SAN conversion in subsequent commits
         match host_type {
             HostType::DnsName(name) => {
                 validate_hostname(&name)?;
+                san_list.push(SanType::DnsName(name));
             }
             HostType::IpAddress(_) => {}
             HostType::Email(_) => {}
