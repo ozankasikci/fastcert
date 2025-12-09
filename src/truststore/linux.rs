@@ -45,6 +45,33 @@ impl LinuxDistro {
 
         Self::Unknown
     }
+
+    /// Get the certificate directory path for this distribution
+    fn cert_dir(&self) -> Option<&'static str> {
+        match self {
+            Self::RedHat => Some("/etc/pki/ca-trust/source/anchors/"),
+            Self::Debian => Some("/usr/local/share/ca-certificates/"),
+            Self::Arch => Some("/etc/ca-certificates/trust-source/anchors/"),
+            Self::OpenSUSE => Some("/usr/share/pki/trust/anchors/"),
+            Self::Unknown => None,
+        }
+    }
+
+    /// Get the certificate file extension for this distribution
+    fn cert_extension(&self) -> &'static str {
+        match self {
+            Self::RedHat | Self::OpenSUSE => "pem",
+            Self::Debian | Self::Arch => "crt",
+            Self::Unknown => "pem",
+        }
+    }
+
+    /// Get the certificate file path for a given name
+    fn cert_path(&self, cert_name: &str) -> Option<PathBuf> {
+        let dir = self.cert_dir()?;
+        let ext = self.cert_extension();
+        Some(PathBuf::from(format!("{}{}.{}", dir, cert_name, ext)))
+    }
 }
 
 pub struct LinuxTrustStore;
