@@ -59,6 +59,10 @@ struct Cli {
     #[arg(long = "p12-file", value_name = "FILE")]
     p12_file: Option<String>,
 
+    /// Generate a certificate for client authentication
+    #[arg(long)]
+    client: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
