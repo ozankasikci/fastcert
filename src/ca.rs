@@ -3,7 +3,8 @@
 use crate::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::fs;
-use rcgen::{Certificate, KeyPair, PKCS_RSA_SHA256};
+use rcgen::{Certificate, CertificateParams, KeyPair, PKCS_RSA_SHA256, DistinguishedName, DnType, IsCa, BasicConstraints};
+use time::{OffsetDateTime, Duration};
 
 const ROOT_CERT_FILE: &str = "rootCA.pem";
 const ROOT_KEY_FILE: &str = "rootCA-key.pem";
@@ -68,6 +69,31 @@ fn get_user_and_hostname() -> String {
         .unwrap_or_else(|| "unknown".to_string());
 
     format!("{}@{}", username, hostname)
+}
+
+fn create_ca_params() -> Result<CertificateParams> {
+    let user_host = get_user_and_hostname();
+
+    let mut params = CertificateParams::default();
+
+    let mut dn = DistinguishedName::new();
+    dn.push(DnType::OrganizationName, "mkcert development CA");
+    dn.push(DnType::OrganizationalUnitName, &user_host);
+    dn.push(DnType::CommonName, format!("mkcert {}", user_host));
+    params.distinguished_name = dn;
+
+    // Valid for 10 years
+    let now = OffsetDateTime::now_utc();
+    params.not_before = now;
+    params.not_after = now + Duration::days(3650);
+
+    params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    params.key_usages = vec![
+        rcgen::KeyUsagePurpose::KeyCertSign,
+        rcgen::KeyUsagePurpose::CrlSign,
+    ];
+
+    Ok(params)
 }
 
 #[cfg(test)]
