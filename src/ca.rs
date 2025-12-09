@@ -25,4 +25,20 @@ impl CertificateAuthority {
     pub fn root_path(&self) -> &Path {
         &self.root_path
     }
+
+    pub fn cert_path(&self) -> PathBuf {
+        self.root_path.join(ROOT_CERT_FILE)
+    }
+
+    pub fn key_path(&self) -> PathBuf {
+        self.root_path.join(ROOT_KEY_FILE)
+    }
+
+    pub fn cert_exists(&self) -> bool {
+        self.cert_path().exists()
+    }
+
+    pub fn key_exists(&self) -> bool {
+        self.key_path().exists()
+    }
 }
