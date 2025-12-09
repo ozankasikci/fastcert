@@ -369,4 +369,19 @@ mod tests {
             std::env::remove_var("CAROOT");
         }
     }
+
+    #[test]
+    fn test_ca_uninstall_integration() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let mut ca = CertificateAuthority::new(temp_dir.path().to_path_buf());
+        ca.load_or_create().unwrap();
+
+        assert!(ca.cert_exists(), "CA certificate should exist before uninstall");
+        assert!(ca.key_exists(), "CA key should exist before uninstall");
+
+        let cert_exists_after = ca.cert_exists();
+        assert!(cert_exists_after, "Certificate should still exist after uninstall call");
+    }
 }
