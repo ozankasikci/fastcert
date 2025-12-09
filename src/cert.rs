@@ -265,6 +265,36 @@ fn set_file_permissions(_path: &PathBuf, _mode: u32) -> Result<()> {
     Ok(())
 }
 
+/// Write PKCS#12 file with certificate, key, and CA cert
+/// Uses the default password "changeit" as per mkcert behavior
+pub fn write_pkcs12_file(
+    p12_path: &PathBuf,
+    cert_der: &[u8],
+    key: &KeyPair,
+    ca_cert_der: &[u8],
+) -> Result<()> {
+    use p12::PFX;
+
+    // Get the private key DER (PKCS#8 format)
+    let key_der = key.serialize_der();
+
+    // Create PKCS#12 bundle with password "changeit"
+    // The p12 crate's PFX::new takes: cert_der, key_der, ca_chain, password, friendly_name
+    // It returns Option<PFX>
+    let pfx = PFX::new(cert_der, &key_der, Some(ca_cert_der), "changeit", "")
+        .ok_or_else(|| Error::Certificate("Failed to create PKCS#12".to_string()))?;
+
+    // Encode to DER (returns Vec<u8>)
+    let pfx_data = pfx.to_der();
+
+    // Write to file with 0644 permissions
+    fs::write(p12_path, &pfx_data)
+        .map_err(|e| Error::Io(e))?;
+    set_file_permissions(p12_path, 0o644)?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
