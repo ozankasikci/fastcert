@@ -81,7 +81,77 @@ struct Cli {
 }
 
 fn main() -> Result<()> {
-    let _cli = Cli::parse();
-    println!("rscert - certificate generation tool");
+    let cli = Cli::parse();
+
+    // Handle -CAROOT flag
+    if cli.caroot {
+        if cli.install || cli.uninstall {
+            eprintln!("ERROR: you can't set -install/-uninstall and -CAROOT at the same time");
+            std::process::exit(1);
+        }
+        println!("{}", rscert::ca::get_caroot()?);
+        return Ok(());
+    }
+
+    // Handle conflicting flags
+    if cli.install && cli.uninstall {
+        eprintln!("ERROR: you can't set -install and -uninstall at the same time");
+        std::process::exit(1);
+    }
+
+    // Handle CSR conflicts
+    if cli.csr.is_some() {
+        if cli.pkcs12 || cli.ecdsa || cli.client {
+            eprintln!("ERROR: can only combine -csr with -install and -cert-file");
+            std::process::exit(1);
+        }
+        if !cli.domains.is_empty() {
+            eprintln!("ERROR: can't specify extra arguments when using -csr");
+            std::process::exit(1);
+        }
+    }
+
+    // If no arguments, show usage
+    if !cli.install && !cli.uninstall && cli.domains.is_empty() && cli.csr.is_none() {
+        Cli::parse_from(&["rscert", "--help"]);
+        return Ok(());
+    }
+
+    // Handle -install mode
+    if cli.install {
+        rscert::ca::install()?;
+        if cli.domains.is_empty() && cli.csr.is_none() {
+            return Ok(());
+        }
+    }
+
+    // Handle -uninstall mode
+    if cli.uninstall {
+        rscert::ca::uninstall()?;
+        return Ok(());
+    }
+
+    // Handle CSR-based certificate generation
+    if let Some(csr_path) = cli.csr {
+        rscert::cert::generate_from_csr(
+            &csr_path,
+            cli.cert_file.as_deref(),
+        )?;
+        return Ok(());
+    }
+
+    // Handle regular certificate generation
+    if !cli.domains.is_empty() {
+        rscert::cert::generate_certificate(
+            &cli.domains,
+            cli.cert_file.as_deref(),
+            cli.key_file.as_deref(),
+            cli.p12_file.as_deref(),
+            cli.client,
+            cli.ecdsa,
+            cli.pkcs12,
+        )?;
+    }
+
     Ok(())
 }
