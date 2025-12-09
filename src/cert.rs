@@ -171,6 +171,17 @@ pub fn add_email_protection(params: &mut CertificateParams) {
     }
 }
 
+/// Serialize a certificate to PEM format
+pub fn cert_to_pem(cert_der: &[u8]) -> String {
+    pem::encode(&pem::Pem::new("CERTIFICATE", cert_der))
+}
+
+/// Serialize a private key to PEM format (PKCS#8)
+pub fn key_to_pem(key: &KeyPair) -> Result<String> {
+    let key_der = key.serialize_der();
+    Ok(pem::encode(&pem::Pem::new("PRIVATE KEY", key_der)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
