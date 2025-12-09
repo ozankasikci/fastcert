@@ -259,4 +259,68 @@ mod tests {
         assert!(validate_hostname("").is_err());
         assert!(validate_hostname("..").is_err());
     }
+
+    #[test]
+    fn test_file_naming_single_host() {
+        let config = CertificateConfig::new(vec!["example.com".to_string()]);
+        let (cert, key, p12) = generate_file_names(&config);
+        assert_eq!(cert, PathBuf::from("./example.com.pem"));
+        assert_eq!(key, PathBuf::from("./example.com-key.pem"));
+        assert_eq!(p12, PathBuf::from("./example.com.p12"));
+    }
+
+    #[test]
+    fn test_file_naming_multiple_hosts() {
+        let config = CertificateConfig::new(vec![
+            "example.com".to_string(),
+            "www.example.com".to_string(),
+            "localhost".to_string(),
+            "127.0.0.1".to_string(),
+            "::1".to_string(),
+        ]);
+        let (cert, key, p12) = generate_file_names(&config);
+        assert_eq!(cert, PathBuf::from("./example.com+4.pem"));
+        assert_eq!(key, PathBuf::from("./example.com+4-key.pem"));
+        assert_eq!(p12, PathBuf::from("./example.com+4.p12"));
+    }
+
+    #[test]
+    fn test_file_naming_wildcard() {
+        let config = CertificateConfig::new(vec!["*.example.com".to_string()]);
+        let (cert, key, p12) = generate_file_names(&config);
+        assert_eq!(cert, PathBuf::from("./_wildcard.example.com.pem"));
+        assert_eq!(key, PathBuf::from("./_wildcard.example.com-key.pem"));
+        assert_eq!(p12, PathBuf::from("./_wildcard.example.com.p12"));
+    }
+
+    #[test]
+    fn test_file_naming_with_port() {
+        let config = CertificateConfig::new(vec!["localhost:8080".to_string()]);
+        let (cert, key, p12) = generate_file_names(&config);
+        assert_eq!(cert, PathBuf::from("./localhost_8080.pem"));
+        assert_eq!(key, PathBuf::from("./localhost_8080-key.pem"));
+        assert_eq!(p12, PathBuf::from("./localhost_8080.p12"));
+    }
+
+    #[test]
+    fn test_file_naming_client_cert() {
+        let mut config = CertificateConfig::new(vec!["example.com".to_string()]);
+        config.client_cert = true;
+        let (cert, key, p12) = generate_file_names(&config);
+        assert_eq!(cert, PathBuf::from("./example.com-client.pem"));
+        assert_eq!(key, PathBuf::from("./example.com-client-key.pem"));
+        assert_eq!(p12, PathBuf::from("./example.com-client.p12"));
+    }
+
+    #[test]
+    fn test_file_naming_custom_paths() {
+        let mut config = CertificateConfig::new(vec!["example.com".to_string()]);
+        config.cert_file = Some(PathBuf::from("/tmp/custom.crt"));
+        config.key_file = Some(PathBuf::from("/tmp/custom.key"));
+        config.p12_file = Some(PathBuf::from("/tmp/custom.p12"));
+        let (cert, key, p12) = generate_file_names(&config);
+        assert_eq!(cert, PathBuf::from("/tmp/custom.crt"));
+        assert_eq!(key, PathBuf::from("/tmp/custom.key"));
+        assert_eq!(p12, PathBuf::from("/tmp/custom.p12"));
+    }
 }
