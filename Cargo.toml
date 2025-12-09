@@ -13,3 +13,7 @@ pem = "3.0"
 p12 = "0.6"
 dirs = "5.0"
 time = { version = "0.3", features = ["formatting", "macros"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "2.9"
+core-foundation = "0.9"
