@@ -75,6 +75,25 @@ impl TrustStore for MacOSTrustStore {
     }
 
     fn uninstall(&self) -> Result<()> {
+        // Remove the certificate from the system keychain
+        let output = self.run_security_command(
+            &[
+                "remove-trusted-cert",
+                "-d",
+                &self.cert_path,
+            ],
+            true,
+        )?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::TrustStore(format!(
+                "Failed to remove certificate from keychain: {}",
+                stderr
+            )));
+        }
+
+        println!("The local CA certificate has been removed from the macOS keychain.");
         Ok(())
     }
 }
