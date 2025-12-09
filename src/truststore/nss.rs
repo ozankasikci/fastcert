@@ -326,6 +326,60 @@ impl TrustStore for NssTrustStore {
     }
 
     fn uninstall(&self) -> Result<()> {
+        if !Self::has_certutil() {
+            // If certutil is not available, we can't uninstall but this is not an error
+            return Ok(());
+        }
+
+        let profiles = Self::find_nss_profiles();
+        if profiles.is_empty() {
+            // No profiles found, nothing to uninstall
+            return Ok(());
+        }
+
+        for (db_type, profile_path) in &profiles {
+            let db_arg = format!("{}:{}", db_type, profile_path.display());
+
+            // First check if the certificate exists in this profile
+            let check_args = vec![
+                "-V",
+                "-d", &db_arg,
+                "-u", "L",
+                "-n", &self.unique_name,
+            ];
+
+            match Self::exec_certutil(&check_args) {
+                Ok(output) => {
+                    if !output.status.success() {
+                        // Certificate doesn't exist in this profile, skip
+                        continue;
+                    }
+                }
+                Err(_) => {
+                    // Error checking, skip this profile
+                    continue;
+                }
+            }
+
+            // Certificate exists, delete it
+            let delete_args = vec![
+                "-D",
+                "-d", &db_arg,
+                "-n", &self.unique_name,
+            ];
+
+            let output = Self::exec_certutil(&delete_args)?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                // Log but don't fail on uninstall errors
+                eprintln!(
+                    "Warning: Failed to remove certificate from NSS database {}: {}",
+                    profile_path.display(),
+                    stderr
+                );
+            }
+        }
+
         Ok(())
     }
 }
