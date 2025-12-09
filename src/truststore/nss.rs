@@ -243,7 +243,39 @@ impl NssTrustStore {
 
 impl TrustStore for NssTrustStore {
     fn check(&self) -> Result<bool> {
-        Ok(false)
+        if !Self::has_certutil() {
+            return Ok(false);
+        }
+
+        let profiles = Self::find_nss_profiles();
+        if profiles.is_empty() {
+            return Ok(false);
+        }
+
+        let mut success = true;
+        for (db_type, profile_path) in profiles {
+            let db_arg = format!("{}:{}", db_type, profile_path.display());
+
+            let args = vec![
+                "-V",
+                "-d", &db_arg,
+                "-u", "L",
+                "-n", &self.unique_name,
+            ];
+
+            match Self::exec_certutil(&args) {
+                Ok(output) => {
+                    if !output.status.success() {
+                        success = false;
+                    }
+                }
+                Err(_) => {
+                    success = false;
+                }
+            }
+        }
+
+        Ok(success)
     }
 
     fn install(&self) -> Result<()> {
