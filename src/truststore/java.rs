@@ -5,6 +5,9 @@ use super::TrustStore;
 use std::path::{Path, PathBuf};
 use std::env;
 use std::process::Command;
+use std::fs;
+use sha1::Sha1;
+use sha2::{Sha256, Digest};
 
 pub struct JavaTrustStore {
     cert_path: PathBuf,
@@ -111,7 +114,53 @@ struct JavaConfig {
 
 impl TrustStore for JavaTrustStore {
     fn check(&self) -> Result<bool> {
-        Ok(false)
+        if !Self::has_keytool() {
+            return Ok(false);
+        }
+
+        let config = Self::detect_java()
+            .ok_or_else(|| Error::TrustStore("Java not found".to_string()))?;
+
+        let cacerts_str = config.cacerts_path.to_str()
+            .ok_or_else(|| Error::TrustStore("Invalid cacerts path".to_string()))?;
+
+        // Get the keytool list output
+        let args = vec![
+            "-list",
+            "-keystore", cacerts_str,
+            "-storepass", "changeit",
+        ];
+
+        let output = Self::exec_keytool(&args)?;
+        if !output.status.success() {
+            return Ok(false);
+        }
+
+        // Read certificate and compute fingerprints
+        let cert_pem = fs::read_to_string(&self.cert_path)?;
+        let pem_data = pem::parse(&cert_pem)
+            .map_err(|e| Error::Certificate(format!("Failed to parse PEM: {}", e)))?;
+
+        let cert_der = pem_data.contents();
+
+        // Compute SHA1 fingerprint
+        let mut sha1_hasher = Sha1::new();
+        sha1_hasher.update(cert_der);
+        let sha1_result = sha1_hasher.finalize();
+        let sha1_hex = hex::encode_upper(sha1_result);
+
+        // Compute SHA256 fingerprint
+        let mut sha256_hasher = Sha256::new();
+        sha256_hasher.update(cert_der);
+        let sha256_result = sha256_hasher.finalize();
+        let sha256_hex = hex::encode_upper(sha256_result);
+
+        // keytool outputs fingerprints with colons, we need to remove them for comparison
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stdout_no_colons = stdout.replace(":", "");
+
+        // Check if either SHA1 or SHA256 fingerprint is present
+        Ok(stdout_no_colons.contains(&sha1_hex) || stdout_no_colons.contains(&sha256_hex))
     }
 
     fn install(&self) -> Result<()> {
