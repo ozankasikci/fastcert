@@ -372,7 +372,17 @@ pub fn parse_csr_pem(csr_bytes: &[u8]) -> Result<Vec<u8>> {
     let end_pos = pem_str.find(end_marker)
         .ok_or_else(|| Error::Certificate("Invalid PEM format in CSR file".to_string()))?;
 
-    let pem_block = &pem_str[begin_pos..end_pos + end_marker.len() + 30]; // Include tag line
+    // Find the end of the final line (after END marker)
+    let mut final_pos = end_pos + end_marker.len();
+    while final_pos < pem_str.len() {
+        let ch = pem_str.as_bytes()[final_pos];
+        if ch == b'\n' || ch == b'\r' {
+            final_pos += 1;
+            break;
+        }
+        final_pos += 1;
+    }
+    let pem_block = &pem_str[begin_pos..final_pos];
 
     // Parse using pem crate
     let pem_data = ::pem::parse(pem_block.as_bytes())
@@ -898,5 +908,58 @@ mod tests {
             let perms = fs::metadata(&combined_path).unwrap().permissions();
             assert_eq!(perms.mode() & 0o777, 0o600, "Combined file permissions should be 0600");
         }
+    }
+
+    #[test]
+    fn test_csr_file_reading() {
+        use tempfile::TempDir;
+        use std::io::Write;
+
+        let temp_dir = TempDir::new().unwrap();
+        let csr_path = temp_dir.path().join("test.csr");
+
+        // Create a fake CSR file
+        let mut file = std::fs::File::create(&csr_path).unwrap();
+        file.write_all(b"test content").unwrap();
+
+        let result = read_csr_file(csr_path.to_str().unwrap());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), b"test content");
+    }
+
+    #[test]
+    fn test_csr_pem_parsing() {
+        // Generate a valid test CSR using rcgen
+        let mut params = CertificateParams::default();
+        params.distinguished_name.push(rcgen::DnType::CommonName, "test.example.com");
+
+        let cert = rcgen::Certificate::from_params(params).unwrap();
+        let csr_der = cert.serialize_request_der().unwrap();
+
+        // Convert to PEM format
+        let csr_pem = ::pem::encode(&::pem::Pem::new("CERTIFICATE REQUEST", csr_der));
+
+        // Test parsing
+        let result = parse_csr_pem(csr_pem.as_bytes());
+        assert!(result.is_ok(), "Failed to parse CSR PEM: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_extract_san_from_csr() {
+        // Create a test CSR with a common name
+        let mut params = CertificateParams::default();
+        params.distinguished_name.push(rcgen::DnType::CommonName, "example.com");
+
+        let cert = rcgen::Certificate::from_params(params).unwrap();
+        let csr_der = cert.serialize_request_der().unwrap();
+
+        // Parse the CSR
+        use x509_parser::prelude::*;
+        let (_, csr) = X509CertificationRequest::from_der(&csr_der).unwrap();
+
+        // Extract SANs
+        let hosts = extract_san_from_csr(&csr).unwrap();
+        assert!(!hosts.is_empty());
+        assert_eq!(hosts[0], "example.com");
     }
 }
