@@ -9,6 +9,10 @@ struct Cli {
     #[arg(long)]
     install: bool,
 
+    /// Uninstall the local CA from the system trust store
+    #[arg(long)]
+    uninstall: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
