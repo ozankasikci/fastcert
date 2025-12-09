@@ -94,4 +94,18 @@ mod tests {
         let ht = HostType::parse("test@example.com").unwrap();
         assert_eq!(ht, HostType::Email("test@example.com".to_string()));
     }
+
+    #[test]
+    fn test_validate_hostname() {
+        assert!(validate_hostname("example.com").is_ok());
+        assert!(validate_hostname("sub.example.com").is_ok());
+        assert!(validate_hostname("*.example.com").is_ok());
+        assert!(validate_hostname("localhost").is_ok());
+    }
+
+    #[test]
+    fn test_invalid_hostname() {
+        assert!(validate_hostname("").is_err());
+        assert!(validate_hostname("..").is_err());
+    }
 }
