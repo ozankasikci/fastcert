@@ -357,6 +357,29 @@ pub fn read_csr_file(csr_path: &str) -> Result<Vec<u8>> {
         .map_err(|e| Error::Certificate(format!("Failed to read CSR file: {}", e)))
 }
 
+/// Parse CSR from PEM format
+pub fn parse_csr_pem(csr_bytes: &[u8]) -> Result<x509_parser::certification_request::X509CertificationRequest> {
+    use x509_parser::prelude::*;
+
+    // Try to parse as PEM first
+    let pem_data = pem::parse(csr_bytes)
+        .map_err(|e| Error::Certificate(format!("Failed to parse CSR PEM: {}", e)))?;
+
+    // Validate PEM type
+    if pem_data.tag() != "CERTIFICATE REQUEST" && pem_data.tag() != "NEW CERTIFICATE REQUEST" {
+        return Err(Error::Certificate(format!(
+            "Expected CERTIFICATE REQUEST, got {}",
+            pem_data.tag()
+        )));
+    }
+
+    // Parse the DER-encoded CSR
+    let (_, csr) = X509CertificationRequest::from_der(pem_data.contents())
+        .map_err(|e| Error::Certificate(format!("Failed to parse CSR DER: {}", e)))?;
+
+    Ok(csr)
+}
+
 /// Generate certificate from CSR
 pub fn generate_from_csr(
     _csr_path: &str,
