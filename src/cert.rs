@@ -5,7 +5,11 @@ use rcgen::{KeyPair, SanType, CertificateParams, KeyUsagePurpose, ExtendedKeyUsa
 use regex::Regex;
 use std::net::IpAddr;
 use std::path::PathBuf;
+use std::fs;
 use time::{OffsetDateTime, Duration};
+
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 pub struct CertificateConfig {
     pub hosts: Vec<String>,
@@ -219,6 +223,46 @@ pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, Pat
         .unwrap_or_else(|| PathBuf::from(format!("./{}.p12", default_name)));
 
     (cert_file, key_file, p12_file)
+}
+
+/// Write PEM files with appropriate permissions
+/// Certificate files: 0644 (readable by all)
+/// Key files: 0600 (readable only by owner)
+/// If cert and key are in the same file, use 0600
+pub fn write_pem_files(cert_path: &PathBuf, key_path: &PathBuf, cert_pem: &str, key_pem: &str) -> Result<()> {
+    if cert_path == key_path {
+        // Combined file: write both cert and key with restricted permissions (0600)
+        let combined = format!("{}{}", cert_pem, key_pem);
+        fs::write(cert_path, combined.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        set_file_permissions(cert_path, 0o600)?;
+    } else {
+        // Separate files
+        fs::write(cert_path, cert_pem.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        set_file_permissions(cert_path, 0o644)?;
+
+        fs::write(key_path, key_pem.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        set_file_permissions(key_path, 0o600)?;
+    }
+
+    Ok(())
+}
+
+/// Set file permissions (Unix: actual permissions, Windows: no-op for now)
+#[cfg(unix)]
+fn set_file_permissions(path: &PathBuf, mode: u32) -> Result<()> {
+    let permissions = fs::Permissions::from_mode(mode);
+    fs::set_permissions(path, permissions)
+        .map_err(|e| Error::Io(e))
+}
+
+#[cfg(not(unix))]
+fn set_file_permissions(_path: &PathBuf, _mode: u32) -> Result<()> {
+    // On Windows, we could use SetNamedSecurityInfo but for now just skip
+    // The Go implementation also uses ioutil.WriteFile which doesn't set special permissions on Windows
+    Ok(())
 }
 
 #[cfg(test)]
