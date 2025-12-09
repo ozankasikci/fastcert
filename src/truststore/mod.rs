@@ -22,17 +22,15 @@ pub trait TrustStore {
 }
 
 #[cfg(target_os = "macos")]
-pub fn install_macos(_cert_path: &Path) -> Result<()> {
-    println!("Note: macOS trust store installation not yet implemented.");
-    println!("Please manually import the CA certificate into Keychain Access.");
-    Ok(())
+pub fn install_macos(cert_path: &Path) -> Result<()> {
+    let store = macos::MacOSTrustStore::new(cert_path);
+    store.install()
 }
 
 #[cfg(target_os = "macos")]
-pub fn uninstall_macos(_cert_path: &Path) -> Result<()> {
-    println!("Note: macOS trust store uninstallation not yet implemented.");
-    println!("Please manually remove the CA certificate from Keychain Access.");
-    Ok(())
+pub fn uninstall_macos(cert_path: &Path) -> Result<()> {
+    let store = macos::MacOSTrustStore::new(cert_path);
+    store.uninstall()
 }
 
 #[cfg(target_os = "windows")]
