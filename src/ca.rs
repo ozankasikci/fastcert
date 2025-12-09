@@ -4,7 +4,7 @@ use crate::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::fs::{self, File};
 use std::io::Write;
-use rcgen::{Certificate, CertificateParams, KeyPair, PKCS_RSA_SHA256, DistinguishedName, DnType, IsCa, BasicConstraints};
+use rcgen::{Certificate, CertificateParams, KeyPair, DistinguishedName, DnType, IsCa, BasicConstraints};
 use time::{OffsetDateTime, Duration};
 
 #[cfg(unix)]
@@ -56,8 +56,7 @@ impl CertificateAuthority {
     }
 
     pub fn create_ca(&mut self) -> Result<()> {
-        let keypair = generate_ca_keypair()?;
-        let params = create_ca_params(keypair)?;
+        let params = create_ca_params()?;
 
         let cert = Certificate::from_params(params)
             .map_err(|e| Error::Certificate(format!("Failed to create CA cert: {}", e)))?;
@@ -126,12 +125,6 @@ impl CertificateAuthority {
     }
 }
 
-fn generate_ca_keypair() -> Result<KeyPair> {
-    let keypair = KeyPair::generate(&PKCS_RSA_SHA256)
-        .map_err(|e| Error::Certificate(format!("Failed to generate key: {}", e)))?;
-    Ok(keypair)
-}
-
 fn get_user_and_hostname() -> String {
     let username = std::env::var("USER")
         .or_else(|_| std::env::var("USERNAME"))
@@ -145,7 +138,7 @@ fn get_user_and_hostname() -> String {
     format!("{}@{}", username, hostname)
 }
 
-fn create_ca_params(keypair: KeyPair) -> Result<CertificateParams> {
+fn create_ca_params() -> Result<CertificateParams> {
     let user_host = get_user_and_hostname();
 
     let mut params = CertificateParams::default();
@@ -167,7 +160,7 @@ fn create_ca_params(keypair: KeyPair) -> Result<CertificateParams> {
         rcgen::KeyUsagePurpose::CrlSign,
     ];
 
-    params.key_pair = Some(keypair);
+    // Let rcgen generate the key pair automatically
 
     Ok(params)
 }
@@ -202,6 +195,26 @@ mod tests {
 
         ca.init().unwrap();
         assert!(temp_dir.exists());
+
+        // Cleanup
+        fs::remove_dir_all(temp_dir).unwrap();
+    }
+
+    #[test]
+    fn test_ca_lifecycle() {
+        let temp_dir = std::env::temp_dir().join("rscert_test_lifecycle");
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let mut ca = CertificateAuthority::new(temp_dir.clone());
+
+        // First call creates CA
+        ca.load_or_create().unwrap();
+        assert!(ca.cert_exists());
+        assert!(ca.key_exists());
+
+        // Second call loads existing CA
+        let mut ca2 = CertificateAuthority::new(temp_dir.clone());
+        ca2.load_or_create().unwrap();
 
         // Cleanup
         fs::remove_dir_all(temp_dir).unwrap();
