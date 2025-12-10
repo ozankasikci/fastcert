@@ -7,16 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-12-10
+
 ### Added
-- Comprehensive documentation in README
-- Installation instructions for all platforms
-- Usage examples covering common scenarios
-- Advanced options documentation
-- Troubleshooting guide
-- FAQ section
-- Contributing guide (CONTRIBUTING.md)
-- Security policy (SECURITY.md)
-- This changelog
+- Comprehensive code documentation across all modules
+- Module-level documentation with examples
+- Function documentation with detailed parameters and return values
+- Improved error documentation
+- Release profile optimizations for smaller, faster binaries
+- Continuous Integration workflow
+- Build status badges
+
+### Changed
+- Applied all clippy suggestions for better code quality
+- Formatted code with rustfmt for consistency
+- Optimized imports across all modules
+- Enhanced README with comprehensive examples
+- Updated documentation standards
+
+### Fixed
+- Manual strip patterns replaced with strip_prefix
+- Removed unused code (dead code warnings)
+- Improved code maintainability
 
 ## [0.1.0] - 2024-12-10
 
