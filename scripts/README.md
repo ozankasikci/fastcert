@@ -59,23 +59,21 @@ This script will:
 8. ✅ Publish to crates.io
 9. ✅ Create GitHub release
 10. ✅ Generate Homebrew formula
+11. ✅ Publish to Homebrew tap (if ../homebrew-tap exists)
 
 ### 3. Homebrew Distribution
 
-After the release script completes, you have two options:
+The release script automatically publishes to your Homebrew tap if a `../homebrew-tap` directory exists. If not, you have two options:
 
 #### Option A: Create a Homebrew Tap (Recommended for initial releases)
 
-1. Create a new repository named `homebrew-tap`
+1. Create a new repository named `homebrew-tap` in the parent directory
 2. Create a `Formula` directory
-3. Copy the generated formula:
-   ```bash
-   cp homebrew/fastcert.rb ../homebrew-tap/Formula/
-   cd ../homebrew-tap
-   git add Formula/fastcert.rb
-   git commit -m "Add fastcert formula"
-   git push
-   ```
+3. The release script will automatically:
+   - Copy the generated formula to `../homebrew-tap/Formula/`
+   - Commit with message "fastcert: update to X.X.X"
+   - Pull with rebase (in case of remote changes)
+   - Push to the tap repository
 4. Users can install with:
    ```bash
    brew install ozankasikci/tap/fastcert

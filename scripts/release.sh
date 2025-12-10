@@ -132,12 +132,36 @@ echo ""
 echo "🍺 Updating Homebrew formula..."
 ./scripts/update-homebrew.sh "$VERSION"
 
+# Publish to Homebrew tap if it exists
+HOMEBREW_TAP="../homebrew-tap"
+if [ -d "$HOMEBREW_TAP" ]; then
+    echo ""
+    echo "📦 Publishing to Homebrew tap..."
+
+    # Copy formula to tap
+    cp homebrew/fastcert.rb "$HOMEBREW_TAP/Formula/"
+
+    # Commit and push in tap repository
+    cd "$HOMEBREW_TAP"
+    git add Formula/fastcert.rb
+    git commit -m "fastcert: update to $VERSION"
+    git pull --rebase
+    git push
+    cd - > /dev/null
+
+    echo "✅ Formula published to Homebrew tap"
+else
+    echo ""
+    echo "⚠️  Homebrew tap directory not found at $HOMEBREW_TAP"
+    echo "   Skipping tap publication"
+fi
+
 echo ""
 echo "✅ Release $VERSION completed successfully!"
 echo ""
 echo "📋 Next steps:"
 echo "  1. Verify the release on crates.io: https://crates.io/crates/fastcert"
 echo "  2. Verify the GitHub release: https://github.com/ozankasikci/fastcert/releases/tag/v$VERSION"
-echo "  3. Test Homebrew installation: brew install fastcert"
+echo "  3. Test Homebrew installation: brew install ozankasikci/tap/fastcert"
 echo "  4. Update CHANGELOG.md if needed"
 echo ""
