@@ -439,14 +439,14 @@ impl CertificateAuthority {
     /// - Certificate parsing fails
     pub fn unique_name(&self) -> Result<String> {
         // Parse the certificate to get the serial number
-        let cert_pem = fs::read_to_string(&self.cert_path())?;
+        let cert_pem = fs::read_to_string(self.cert_path())?;
 
         // Parse PEM to get DER
         let pem_data = pem::parse(&cert_pem)
             .map_err(|e| Error::Certificate(format!("Failed to parse PEM: {}", e)))?;
 
         // Parse X.509 certificate
-        let cert = x509_parser::parse_x509_certificate(&pem_data.contents())
+        let cert = x509_parser::parse_x509_certificate(pem_data.contents())
             .map_err(|e| Error::Certificate(format!("Failed to parse certificate: {}", e)))?
             .1;
 
@@ -468,10 +468,10 @@ impl CertificateAuthority {
     /// - The certificate file cannot be read
     /// - PEM or certificate parsing fails
     pub fn get_serial_number(&self) -> Result<String> {
-        let cert_pem = fs::read_to_string(&self.cert_path())?;
+        let cert_pem = fs::read_to_string(self.cert_path())?;
         let pem_data = pem::parse(&cert_pem)
             .map_err(|e| Error::Certificate(format!("Failed to parse PEM: {}", e)))?;
-        let cert = x509_parser::parse_x509_certificate(&pem_data.contents())
+        let cert = x509_parser::parse_x509_certificate(pem_data.contents())
             .map_err(|e| Error::Certificate(format!("Failed to parse certificate: {}", e)))?
             .1;
         Ok(cert.serial.to_str_radix(16))

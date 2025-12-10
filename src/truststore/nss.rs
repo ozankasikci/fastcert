@@ -147,14 +147,13 @@ impl NssTrustStore {
         #[cfg(target_os = "macos")]
         {
             // Check if certutil is in PATH
-            if let Ok(output) = Command::new("which").arg("certutil").output() {
-                if output.status.success() {
+            if let Ok(output) = Command::new("which").arg("certutil").output()
+                && output.status.success() {
                     let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
                     if !path.is_empty() {
                         return Some(PathBuf::from(path));
                     }
                 }
-            }
 
             // Check default Homebrew path
             let homebrew_path = PathBuf::from("/usr/local/opt/nss/bin/certutil");
@@ -163,15 +162,14 @@ impl NssTrustStore {
             }
 
             // Try brew --prefix nss
-            if let Ok(output) = Command::new("brew").args(&["--prefix", "nss"]).output() {
-                if output.status.success() {
+            if let Ok(output) = Command::new("brew").args(["--prefix", "nss"]).output()
+                && output.status.success() {
                     let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
                     let certutil_path = PathBuf::from(prefix).join("bin/certutil");
                     if certutil_path.exists() {
                         return Some(certutil_path);
                     }
                 }
-            }
         }
 
         #[cfg(target_os = "linux")]

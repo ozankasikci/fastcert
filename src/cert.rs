@@ -235,7 +235,7 @@ pub fn calculate_cert_expiration() -> OffsetDateTime {
 pub fn is_cert_expiring_soon(expiration: OffsetDateTime) -> bool {
     let now = OffsetDateTime::now_utc();
     let days_until_expiry = (expiration - now).whole_days();
-    days_until_expiry <= 30 && days_until_expiry >= 0
+    (0..=30).contains(&days_until_expiry)
 }
 
 /// Validate certificate chain (cert must be signed by CA)
@@ -272,16 +272,6 @@ pub fn check_cert_expiry_warning(expiration: OffsetDateTime) {
     }
 }
 
-fn generate_keypair(use_ecdsa: bool) -> Result<KeyPair> {
-    let alg = if use_ecdsa {
-        &PKCS_ECDSA_P256_SHA256
-    } else {
-        &PKCS_RSA_SHA256
-    };
-
-    KeyPair::generate(alg)
-        .map_err(|e| Error::Certificate(format!("Key generation failed: {}", e)))
-}
 
 /// Process a single host and convert to SanType
 fn process_host_to_san(host: &str) -> Result<SanType> {
@@ -314,7 +304,7 @@ pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
 
 /// Validate wildcard depth (only one level deep is allowed)
 pub fn validate_wildcard_depth(name: &str) -> Result<()> {
-    if name.starts_with("*.") {
+    if let Some(stripped) = name.strip_prefix("*.") {
         // Count the number of wildcard components
         let wildcard_count = name.matches("*").count();
         if wildcard_count > 1 {
@@ -322,7 +312,7 @@ pub fn validate_wildcard_depth(name: &str) -> Result<()> {
         }
 
         // Ensure wildcard is only at the beginning
-        if name[2..].contains('*') {
+        if stripped.contains('*') {
             return Err(Error::InvalidHostname(format!("Wildcard must be at the beginning: {}", name)));
         }
     } else if name.contains('*') {
@@ -341,8 +331,8 @@ fn check_wildcard_warning(name: &str) {
     }
 
     // General wildcard reminder
-    if name.starts_with("*.") {
-        eprintln!("{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), &name[2..]);
+    if let Some(stripped) = name.strip_prefix("*.") {
+        eprintln!("{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), stripped);
     }
 }
 
@@ -453,35 +443,35 @@ pub fn write_pem_files(cert_path: &PathBuf, key_path: &PathBuf, cert_pem: &str, 
     if cert_path == key_path {
         // Combined file: write both cert and key with restricted permissions (0600)
         let file = std::fs::File::create(cert_path)
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         let mut writer = BufWriter::new(file);
         use std::io::Write;
         writer.write_all(cert_pem.as_bytes())
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         writer.write_all(key_pem.as_bytes())
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         writer.flush()
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         set_file_permissions(cert_path, 0o600)?;
     } else {
         // Separate files
         let cert_file = std::fs::File::create(cert_path)
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         let mut cert_writer = BufWriter::new(cert_file);
         use std::io::Write;
         cert_writer.write_all(cert_pem.as_bytes())
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         cert_writer.flush()
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         set_file_permissions(cert_path, 0o644)?;
 
         let key_file = std::fs::File::create(key_path)
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         let mut key_writer = BufWriter::new(key_file);
         key_writer.write_all(key_pem.as_bytes())
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         key_writer.flush()
-            .map_err(|e| Error::Io(e))?;
+            .map_err(Error::Io)?;
         set_file_permissions(key_path, 0o600)?;
     }
 
@@ -493,7 +483,7 @@ pub fn write_pem_files(cert_path: &PathBuf, key_path: &PathBuf, cert_pem: &str, 
 pub(crate) fn set_file_permissions(path: &PathBuf, mode: u32) -> Result<()> {
     let permissions = fs::Permissions::from_mode(mode);
     fs::set_permissions(path, permissions)
-        .map_err(|e| Error::Io(e))
+        .map_err(Error::Io)
 }
 
 #[cfg(not(unix))]
@@ -507,7 +497,7 @@ pub(crate) fn set_file_permissions(_path: &PathBuf, _mode: u32) -> Result<()> {
 #[cfg(unix)]
 pub fn verify_file_permissions(path: &PathBuf, expected_mode: u32) -> Result<bool> {
     let metadata = fs::metadata(path)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     let permissions = metadata.permissions();
     let actual_mode = permissions.mode() & 0o777;
     Ok(actual_mode == expected_mode)
@@ -543,7 +533,7 @@ pub fn write_pkcs12_file(
 
     // Write to file with 0644 permissions
     fs::write(p12_path, &pfx_data)
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     set_file_permissions(p12_path, 0o644)?;
 
     Ok(())
@@ -563,8 +553,8 @@ pub fn print_hosts(hosts: &[String]) {
 
     // Check for any wildcards and print reminder
     for host in hosts {
-        if host.starts_with("*.") {
-            println!("\n{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), &host[2..]);
+        if let Some(stripped) = host.strip_prefix("*.") {
+            println!("\n{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), stripped);
             break;
         }
     }
@@ -702,11 +692,10 @@ pub fn extract_san_from_csr(csr: &x509_parser::certification_request::X509Certif
 
     // For now, just extract the Common Name from the subject
     // Full SAN extraction from CSR extensions is complex and can be added later
-    if let Some(cn) = req_info.subject.iter_common_name().next() {
-        if let Ok(cn_str) = cn.as_str() {
+    if let Some(cn) = req_info.subject.iter_common_name().next()
+        && let Ok(cn_str) = cn.as_str() {
             hosts.push(cn_str.to_string());
         }
-    }
 
     // If no CN found, return an error
     if hosts.is_empty() {
@@ -819,7 +808,7 @@ pub fn generate_from_csr(
     // Write certificate (PEM format)
     let cert_pem = cert_to_pem(&cert_der);
     fs::write(&output_file, cert_pem.as_bytes())
-        .map_err(|e| Error::Io(e))?;
+        .map_err(Error::Io)?;
     set_file_permissions(&output_file, 0o644)?;
 
     // Print certificate information
@@ -844,25 +833,22 @@ fn copy_subject_to_params(
     let mut dn = DistinguishedName::new();
 
     // Copy common name
-    if let Some(cn) = subject.iter_common_name().next() {
-        if let Ok(cn_str) = cn.as_str() {
+    if let Some(cn) = subject.iter_common_name().next()
+        && let Ok(cn_str) = cn.as_str() {
             dn.push(DnType::CommonName, cn_str);
         }
-    }
 
     // Copy organization
-    if let Some(o) = subject.iter_organization().next() {
-        if let Ok(o_str) = o.as_str() {
+    if let Some(o) = subject.iter_organization().next()
+        && let Ok(o_str) = o.as_str() {
             dn.push(DnType::OrganizationName, o_str);
         }
-    }
 
     // Copy organizational unit
-    if let Some(ou) = subject.iter_organizational_unit().next() {
-        if let Ok(ou_str) = ou.as_str() {
+    if let Some(ou) = subject.iter_organizational_unit().next()
+        && let Ok(ou_str) = ou.as_str() {
             dn.push(DnType::OrganizationalUnitName, ou_str);
         }
-    }
 
     params.distinguished_name = dn;
     Ok(())

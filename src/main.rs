@@ -181,7 +181,7 @@ fn main() -> Result<()> {
 
     // If no arguments, show usage
     if !cli.install && !cli.uninstall && cli.domains.is_empty() && cli.csr.is_none() {
-        Cli::parse_from(&["rscert", "--help"]);
+        Cli::parse_from(["rscert", "--help"]);
         return Ok(());
     }
 
