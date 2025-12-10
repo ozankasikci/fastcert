@@ -27,14 +27,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary_name: fastcert
             asset_name: fastcert-x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            binary_name: fastcert
-            asset_name: fastcert-aarch64-unknown-linux-gnu
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary_name: fastcert.exe
-            asset_name: fastcert-x86_64-pc-windows-msvc.exe
 
     steps:
       - name: Checkout code
