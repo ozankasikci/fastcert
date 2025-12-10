@@ -24,6 +24,33 @@ pub fn is_store_enabled(store: &str) -> bool {
     enabled.contains(&store.to_lowercase())
 }
 
+/// Enumerate all available trust stores on this system
+pub fn enumerate_available_stores() -> Vec<String> {
+    let mut stores = Vec::new();
+
+    // Check for system store
+    #[cfg(target_os = "macos")]
+    stores.push("system (macOS Keychain)".to_string());
+
+    #[cfg(target_os = "linux")]
+    stores.push("system (Linux CA certificates)".to_string());
+
+    #[cfg(target_os = "windows")]
+    stores.push("system (Windows Certificate Store)".to_string());
+
+    // Check for NSS/Firefox
+    if nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
+        stores.push("nss (Firefox/Chromium)".to_string());
+    }
+
+    // Check for Java
+    if java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
+        stores.push("java (Java Keystore)".to_string());
+    }
+
+    stores
+}
+
 #[cfg(target_os = "macos")]
 pub mod macos;
 
@@ -229,4 +256,44 @@ pub fn uninstall_windows(cert_path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_enumerate_available_stores() {
+        let stores = enumerate_available_stores();
+
+        // Should have at least the system store
+        assert!(!stores.is_empty(), "Should find at least one trust store");
+
+        // Check that system store is present
+        assert!(stores.iter().any(|s| s.contains("system")), "System store should be available");
+    }
+
+    #[test]
+    fn test_get_enabled_stores_default() {
+        // Clear TRUST_STORES env var for this test
+        unsafe {
+            std::env::remove_var("TRUST_STORES");
+        }
+
+        let stores = get_enabled_stores();
+        assert!(stores.contains(&"system".to_string()));
+        assert!(stores.contains(&"nss".to_string()));
+        assert!(stores.contains(&"java".to_string()));
+    }
+
+    #[test]
+    fn test_is_store_enabled() {
+        unsafe {
+            std::env::remove_var("TRUST_STORES");
+        }
+
+        assert!(is_store_enabled("system"));
+        assert!(is_store_enabled("nss"));
+        assert!(is_store_enabled("java"));
+    }
 }
