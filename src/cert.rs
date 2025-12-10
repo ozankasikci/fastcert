@@ -1245,4 +1245,61 @@ mod tests {
         assert!(validate_uri("http://").is_err());
         assert!(validate_uri("http:// space.com").is_err());
     }
+
+    #[test]
+    fn test_host_type_parsing_dns() {
+        let ht = HostType::parse("example.com").unwrap();
+        assert!(matches!(ht, HostType::DnsName(_)));
+
+        let ht = HostType::parse("*.example.com").unwrap();
+        assert!(matches!(ht, HostType::DnsName(_)));
+
+        let ht = HostType::parse("sub.example.com").unwrap();
+        assert!(matches!(ht, HostType::DnsName(_)));
+    }
+
+    #[test]
+    fn test_host_type_parsing_ip() {
+        let ht = HostType::parse("127.0.0.1").unwrap();
+        assert!(matches!(ht, HostType::IpAddress(_)));
+
+        let ht = HostType::parse("::1").unwrap();
+        assert!(matches!(ht, HostType::IpAddress(_)));
+
+        let ht = HostType::parse("192.168.1.1").unwrap();
+        assert!(matches!(ht, HostType::IpAddress(_)));
+    }
+
+    #[test]
+    fn test_host_type_parsing_email() {
+        let ht = HostType::parse("user@example.com").unwrap();
+        assert!(matches!(ht, HostType::Email(_)));
+
+        let ht = HostType::parse("test.user@example.co.uk").unwrap();
+        assert!(matches!(ht, HostType::Email(_)));
+    }
+
+    #[test]
+    fn test_host_type_parsing_uri() {
+        let ht = HostType::parse("https://example.com").unwrap();
+        assert!(matches!(ht, HostType::Uri(_)));
+
+        let ht = HostType::parse("http://localhost:8080").unwrap();
+        assert!(matches!(ht, HostType::Uri(_)));
+    }
+
+    #[test]
+    fn test_host_type_validation_errors() {
+        // Invalid IP
+        assert!(HostType::parse("0.0.0.0").is_err());
+
+        // Invalid email
+        assert!(HostType::parse("invalid@").is_err());
+
+        // Invalid URI
+        assert!(HostType::parse("://no-scheme").is_err());
+
+        // Invalid wildcard depth (tested via validate_wildcard_depth)
+        assert!(validate_wildcard_depth("*.*.example.com").is_err());
+    }
 }
