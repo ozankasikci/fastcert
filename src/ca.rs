@@ -165,13 +165,14 @@ impl CertificateAuthority {
 
     pub fn create_ca(&mut self) -> Result<()> {
         eprintln!("Generating CA certificate...");
-        let params = create_ca_params()?;
+        let params = create_ca_params()
+            .map_err(|e| Error::Certificate(format!("Failed to create CA parameters: {}", e)))?;
 
         let cert = Certificate::from_params(params)
-            .map_err(|e| Error::Certificate(format!("Failed to create CA cert: {}", e)))?;
+            .map_err(|e| Error::Certificate(format!("Failed to generate CA certificate: {}", e)))?;
 
         let cert_pem = cert.serialize_pem()
-            .map_err(|e| Error::Certificate(format!("Failed to serialize cert: {}", e)))?;
+            .map_err(|e| Error::Certificate(format!("Failed to serialize CA certificate to PEM: {}", e)))?;
 
         self.cert = Some(cert);
         self.cert_pem = Some(cert_pem);
@@ -181,25 +182,31 @@ impl CertificateAuthority {
 
     pub fn save(&self) -> Result<()> {
         let cert_pem = self.cert_pem.as_ref()
-            .ok_or(Error::Certificate("No certificate to save".to_string()))?;
+            .ok_or_else(|| Error::Certificate("No certificate available to save".to_string()))?;
 
         let cert = self.cert.as_ref()
-            .ok_or(Error::Certificate("No certificate to save".to_string()))?;
+            .ok_or_else(|| Error::Certificate("No certificate available to save".to_string()))?;
 
         // Save certificate
         let cert_path = self.cert_path();
-        let mut file = File::create(&cert_path)?;
-        file.write_all(cert_pem.as_bytes())?;
+        let mut file = File::create(&cert_path)
+            .map_err(|e| Error::Certificate(format!("Failed to create certificate file at {:?}: {}", cert_path, e)))?;
+        file.write_all(cert_pem.as_bytes())
+            .map_err(|e| Error::Certificate(format!("Failed to write certificate to {:?}: {}", cert_path, e)))?;
         #[cfg(unix)]
-        fs::set_permissions(&cert_path, fs::Permissions::from_mode(0o644))?;
+        fs::set_permissions(&cert_path, fs::Permissions::from_mode(0o644))
+            .map_err(|e| Error::Certificate(format!("Failed to set permissions on {:?}: {}", cert_path, e)))?;
 
         // Save private key
         let key_pem = cert.serialize_private_key_pem();
         let key_path = self.key_path();
-        let mut file = File::create(&key_path)?;
-        file.write_all(key_pem.as_bytes())?;
+        let mut file = File::create(&key_path)
+            .map_err(|e| Error::Certificate(format!("Failed to create key file at {:?}: {}", key_path, e)))?;
+        file.write_all(key_pem.as_bytes())
+            .map_err(|e| Error::Certificate(format!("Failed to write key to {:?}: {}", key_path, e)))?;
         #[cfg(unix)]
-        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o400))?;
+        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o400))
+            .map_err(|e| Error::Certificate(format!("Failed to set permissions on {:?}: {}", key_path, e)))?;
 
         Ok(())
     }
