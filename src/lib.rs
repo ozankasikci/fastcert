@@ -61,13 +61,15 @@ pub enum OutputFormat {
     Yaml,
 }
 
-impl OutputFormat {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for OutputFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "text" => Some(Self::Text),
-            "json" => Some(Self::Json),
-            "yaml" => Some(Self::Yaml),
-            _ => None,
+            "text" => Ok(Self::Text),
+            "json" => Ok(Self::Json),
+            "yaml" => Ok(Self::Yaml),
+            _ => Err(format!("Invalid output format: {}", s)),
         }
     }
 }
@@ -76,6 +78,6 @@ impl OutputFormat {
 pub fn get_output_format() -> OutputFormat {
     std::env::var("FASTCERT_FORMAT")
         .ok()
-        .and_then(|s| OutputFormat::from_str(&s))
+        .and_then(|s| s.parse().ok())
         .unwrap_or(OutputFormat::Text)
 }

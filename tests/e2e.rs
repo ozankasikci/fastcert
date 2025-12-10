@@ -5,12 +5,12 @@
 
 mod common;
 
+use common::{get_test_lock, run_openssl};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
-use common::{get_test_lock, run_openssl};
 
 #[test]
 fn test_e2e_complete_workflow_rsa() {
@@ -38,7 +38,11 @@ fn test_e2e_complete_workflow_rsa() {
         false, // RSA (default)
         false,
     );
-    assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Certificate generation failed: {:?}",
+        result.err()
+    );
 
     // Step 2: Verify CA was created
     let ca_cert_path = ca_path.join("rootCA.pem");
@@ -48,15 +52,25 @@ fn test_e2e_complete_workflow_rsa() {
 
     // Step 3: Verify CA uses RSA-3072
     let ca_key_info = run_openssl(&[
-        "rsa", "-noout", "-text", "-in", ca_key_path.to_str().unwrap()
-    ]).unwrap();
-    assert!(ca_key_info.contains("Private-Key: (3072 bit"), "CA should use RSA-3072");
+        "rsa",
+        "-noout",
+        "-text",
+        "-in",
+        ca_key_path.to_str().unwrap(),
+    ])
+    .unwrap();
+    assert!(
+        ca_key_info.contains("Private-Key: (3072 bit"),
+        "CA should use RSA-3072"
+    );
 
     // Step 4: Verify certificate uses RSA-2048
-    let cert_key_info = run_openssl(&[
-        "rsa", "-noout", "-text", "-in", key_file.to_str().unwrap()
-    ]).unwrap();
-    assert!(cert_key_info.contains("Private-Key: (2048 bit"), "Certificate should use RSA-2048");
+    let cert_key_info =
+        run_openssl(&["rsa", "-noout", "-text", "-in", key_file.to_str().unwrap()]).unwrap();
+    assert!(
+        cert_key_info.contains("Private-Key: (2048 bit"),
+        "Certificate should use RSA-2048"
+    );
 
     // Step 5: Verify certificate is signed by CA
     let verify_result = Command::new("openssl")
@@ -67,18 +81,29 @@ fn test_e2e_complete_workflow_rsa() {
         .unwrap();
 
     let verify_output = String::from_utf8_lossy(&verify_result.stdout);
-    assert!(verify_output.contains("OK"), "Certificate verification failed: {}", verify_output);
+    assert!(
+        verify_output.contains("OK"),
+        "Certificate verification failed: {}",
+        verify_output
+    );
 
     // Step 6: Verify certificate contains correct SANs
     let cert_text = run_openssl(&[
-        "x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()
-    ]).unwrap();
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
     assert!(cert_text.contains("DNS:e2e-test.local"), "Missing DNS SAN");
     assert!(cert_text.contains("IP Address:127.0.0.1"), "Missing IP SAN");
 
     // Step 7: Verify certificate validity period (825 days)
-    assert!(cert_text.contains("825 days") || cert_text.contains("Not After"),
-           "Certificate validity period incorrect");
+    assert!(
+        cert_text.contains("825 days") || cert_text.contains("Not After"),
+        "Certificate validity period incorrect"
+    );
 
     // Step 8: Verify file permissions on Unix
     #[cfg(unix)]
@@ -134,9 +159,8 @@ fn test_e2e_complete_workflow_ecdsa() {
     assert!(result.is_ok(), "ECDSA certificate generation failed");
 
     // Verify certificate uses ECDSA P-256
-    let key_info = run_openssl(&[
-        "ec", "-noout", "-text", "-in", key_file.to_str().unwrap()
-    ]).unwrap();
+    let key_info =
+        run_openssl(&["ec", "-noout", "-text", "-in", key_file.to_str().unwrap()]).unwrap();
     assert!(
         key_info.contains("ASN1 OID: prime256v1") || key_info.contains("NIST CURVE: P-256"),
         "Certificate should use ECDSA P-256"
@@ -152,7 +176,10 @@ fn test_e2e_complete_workflow_ecdsa() {
         .unwrap();
 
     let verify_output = String::from_utf8_lossy(&verify_result.stdout);
-    assert!(verify_output.contains("OK"), "ECDSA certificate verification failed");
+    assert!(
+        verify_output.contains("OK"),
+        "ECDSA certificate verification failed"
+    );
 
     unsafe {
         env::remove_var("CAROOT");
@@ -219,8 +246,13 @@ fn test_e2e_multiple_certificates_same_ca() {
     let mut serial_numbers = Vec::new();
     for cert_path in &cert_paths {
         let serial_output = run_openssl(&[
-            "x509", "-noout", "-serial", "-in", cert_path.to_str().unwrap()
-        ]).unwrap();
+            "x509",
+            "-noout",
+            "-serial",
+            "-in",
+            cert_path.to_str().unwrap(),
+        ])
+        .unwrap();
         serial_numbers.push(serial_output.trim().to_string());
     }
 
@@ -256,7 +288,7 @@ fn test_e2e_complex_sans() {
     // Generate certificate with complex SANs
     let hosts = vec![
         "app.example.com".to_string(),
-        "*.app.example.com".to_string(),  // Wildcard
+        "*.app.example.com".to_string(), // Wildcard
         "api.example.com".to_string(),
         "localhost".to_string(),
         "127.0.0.1".to_string(),
@@ -280,16 +312,33 @@ fn test_e2e_complex_sans() {
 
     // Verify all SANs are present
     let cert_text = run_openssl(&[
-        "x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()
-    ]).unwrap();
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     assert!(cert_text.contains("DNS:app.example.com"), "Missing DNS SAN");
-    assert!(cert_text.contains("DNS:*.app.example.com"), "Missing wildcard SAN");
+    assert!(
+        cert_text.contains("DNS:*.app.example.com"),
+        "Missing wildcard SAN"
+    );
     assert!(cert_text.contains("DNS:api.example.com"), "Missing DNS SAN");
     assert!(cert_text.contains("DNS:localhost"), "Missing localhost SAN");
-    assert!(cert_text.contains("IP Address:127.0.0.1"), "Missing IPv4 SAN");
-    assert!(cert_text.contains("IP Address:0:0:0:0:0:0:0:1"), "Missing IPv6 ::1 SAN");
-    assert!(cert_text.contains("IP Address:2001:DB8:0:0:0:0:0:1"), "Missing IPv6 2001:db8::1 SAN");
+    assert!(
+        cert_text.contains("IP Address:127.0.0.1"),
+        "Missing IPv4 SAN"
+    );
+    assert!(
+        cert_text.contains("IP Address:0:0:0:0:0:0:0:1"),
+        "Missing IPv6 ::1 SAN"
+    );
+    assert!(
+        cert_text.contains("IP Address:2001:DB8:0:0:0:0:0:1"),
+        "Missing IPv6 2001:db8::1 SAN"
+    );
 
     unsafe {
         env::remove_var("CAROOT");
@@ -374,8 +423,13 @@ fn test_e2e_client_certificate() {
 
     // Verify certificate has client auth extended key usage
     let cert_text = run_openssl(&[
-        "x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()
-    ]).unwrap();
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     assert!(
         cert_text.contains("TLS Web Client Authentication"),
@@ -405,8 +459,14 @@ fn test_e2e_certificate_file_naming() {
     // Test 1: Single domain
     let hosts = vec!["single.local".to_string()];
     fastcert::cert::generate_certificate(&hosts, None, None, None, false, false, false).unwrap();
-    assert!(PathBuf::from("single.local.pem").exists(), "Single domain cert naming wrong");
-    assert!(PathBuf::from("single.local-key.pem").exists(), "Single domain key naming wrong");
+    assert!(
+        PathBuf::from("single.local.pem").exists(),
+        "Single domain cert naming wrong"
+    );
+    assert!(
+        PathBuf::from("single.local-key.pem").exists(),
+        "Single domain key naming wrong"
+    );
 
     // Test 2: Multiple domains
     let hosts = vec![
@@ -415,14 +475,26 @@ fn test_e2e_certificate_file_naming() {
         "multi3.local".to_string(),
     ];
     fastcert::cert::generate_certificate(&hosts, None, None, None, false, false, false).unwrap();
-    assert!(PathBuf::from("multi.local+2.pem").exists(), "Multi domain cert naming wrong");
-    assert!(PathBuf::from("multi.local+2-key.pem").exists(), "Multi domain key naming wrong");
+    assert!(
+        PathBuf::from("multi.local+2.pem").exists(),
+        "Multi domain cert naming wrong"
+    );
+    assert!(
+        PathBuf::from("multi.local+2-key.pem").exists(),
+        "Multi domain key naming wrong"
+    );
 
     // Test 3: Wildcard domain
     let hosts = vec!["*.wildcard.local".to_string()];
     fastcert::cert::generate_certificate(&hosts, None, None, None, false, false, false).unwrap();
-    assert!(PathBuf::from("_wildcard.wildcard.local.pem").exists(), "Wildcard cert naming wrong");
-    assert!(PathBuf::from("_wildcard.wildcard.local-key.pem").exists(), "Wildcard key naming wrong");
+    assert!(
+        PathBuf::from("_wildcard.wildcard.local.pem").exists(),
+        "Wildcard cert naming wrong"
+    );
+    assert!(
+        PathBuf::from("_wildcard.wildcard.local-key.pem").exists(),
+        "Wildcard key naming wrong"
+    );
 
     // Restore original directory
     env::set_current_dir(original_dir).unwrap();
@@ -445,15 +517,8 @@ fn test_e2e_error_handling_invalid_domain() {
 
     // Test invalid domain names
     let invalid_hosts = vec!["".to_string()];
-    let result = fastcert::cert::generate_certificate(
-        &invalid_hosts,
-        None,
-        None,
-        None,
-        false,
-        false,
-        false,
-    );
+    let result =
+        fastcert::cert::generate_certificate(&invalid_hosts, None, None, None, false, false, false);
     assert!(result.is_err(), "Should fail with empty domain");
 
     unsafe {
@@ -495,16 +560,35 @@ fn test_scenario_web_development_setup() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify all hosts are in the certificate
-    let cert_text = run_openssl(&["x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()])
-        .unwrap();
+    let cert_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
-    assert!(cert_text.contains("DNS:localhost"), "Should contain localhost");
-    assert!(cert_text.contains("IP Address:127.0.0.1"), "Should contain 127.0.0.1");
-    assert!(cert_text.contains("IP Address:0:0:0:0:0:0:0:1"), "Should contain ::1");
-    assert!(cert_text.contains("DNS:myapp.local"), "Should contain custom domain");
+    assert!(
+        cert_text.contains("DNS:localhost"),
+        "Should contain localhost"
+    );
+    assert!(
+        cert_text.contains("IP Address:127.0.0.1"),
+        "Should contain 127.0.0.1"
+    );
+    assert!(
+        cert_text.contains("IP Address:0:0:0:0:0:0:0:1"),
+        "Should contain ::1"
+    );
+    assert!(
+        cert_text.contains("DNS:myapp.local"),
+        "Should contain custom domain"
+    );
 
     // Verify files exist and have correct permissions
     assert!(cert_file.exists());
@@ -543,10 +627,17 @@ fn test_scenario_microservices_wildcard() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
-    let cert_text = run_openssl(&["x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()])
-        .unwrap();
+    let cert_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     assert!(cert_text.contains("DNS:dev.local"));
     assert!(cert_text.contains("DNS:*.dev.local"));
@@ -572,7 +663,7 @@ fn test_scenario_mobile_development_lan_ip() {
         "localhost".to_string(),
         "127.0.0.1".to_string(),
         "192.168.1.100".to_string(), // Common LAN IP
-        "10.0.0.50".to_string(),      // Another common private IP range
+        "10.0.0.50".to_string(),     // Another common private IP range
     ];
 
     let cert_file = temp_dir.path().join("mobile-dev.pem");
@@ -586,10 +677,17 @@ fn test_scenario_mobile_development_lan_ip() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
-    let cert_text = run_openssl(&["x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()])
-        .unwrap();
+    let cert_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     assert!(cert_text.contains("IP Address:192.168.1.100"));
     assert!(cert_text.contains("IP Address:10.0.0.50"));
@@ -623,11 +721,17 @@ fn test_scenario_certificate_renewal() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     let original_serial = run_openssl(&[
-        "x509", "-noout", "-serial", "-in", cert_file.to_str().unwrap()
-    ]).unwrap();
+        "x509",
+        "-noout",
+        "-serial",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     // Sleep briefly to ensure different generation time
     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -641,14 +745,23 @@ fn test_scenario_certificate_renewal() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     let new_serial = run_openssl(&[
-        "x509", "-noout", "-serial", "-in", cert_file.to_str().unwrap()
-    ]).unwrap();
+        "x509",
+        "-noout",
+        "-serial",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     // Serial should be different (unique for each cert)
-    assert_ne!(original_serial, new_serial, "Renewed cert should have different serial");
+    assert_ne!(
+        original_serial, new_serial,
+        "Renewed cert should have different serial"
+    );
 
     // But still valid and signed by same CA
     let ca_cert = temp_dir.path().join("rootCA.pem");
@@ -696,10 +809,17 @@ fn test_scenario_reverse_proxy_setup() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
-    let cert_text = run_openssl(&["x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()])
-        .unwrap();
+    let cert_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     // Verify all backend service domains are present
     assert!(cert_text.contains("DNS:proxy.local"));
@@ -725,9 +845,9 @@ fn test_scenario_docker_development() {
 
     let hosts = vec![
         "localhost".to_string(),
-        "web".to_string(),          // Container name
-        "db".to_string(),           // Database container
-        "redis".to_string(),        // Cache container
+        "web".to_string(),   // Container name
+        "db".to_string(),    // Database container
+        "redis".to_string(), // Cache container
         "web.docker.local".to_string(),
     ];
 
@@ -742,10 +862,17 @@ fn test_scenario_docker_development() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
-    let cert_text = run_openssl(&["x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()])
-        .unwrap();
+    let cert_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     assert!(cert_text.contains("DNS:web"));
     assert!(cert_text.contains("DNS:db"));
@@ -779,7 +906,8 @@ fn test_scenario_multiple_environments() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Staging environment
     let staging_cert = temp_dir.path().join("staging.pem");
@@ -792,7 +920,8 @@ fn test_scenario_multiple_environments() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Production-like environment
     let prod_cert = temp_dir.path().join("prod.pem");
@@ -805,7 +934,8 @@ fn test_scenario_multiple_environments() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify all three certs are signed by the same CA
     let ca_cert = temp_dir.path().join("rootCA.pem");
@@ -818,18 +948,35 @@ fn test_scenario_multiple_environments() {
             .output()
             .unwrap();
 
-        assert!(String::from_utf8_lossy(&verify_result.stdout).contains("OK"),
-                "Environment cert should be signed by CA");
+        assert!(
+            String::from_utf8_lossy(&verify_result.stdout).contains("OK"),
+            "Environment cert should be signed by CA"
+        );
     }
 
     // Verify each cert has correct domain
-    let dev_text = run_openssl(&["x509", "-noout", "-text", "-in", dev_cert.to_str().unwrap()]).unwrap();
+    let dev_text =
+        run_openssl(&["x509", "-noout", "-text", "-in", dev_cert.to_str().unwrap()]).unwrap();
     assert!(dev_text.contains("DNS:dev.myapp.local"));
 
-    let staging_text = run_openssl(&["x509", "-noout", "-text", "-in", staging_cert.to_str().unwrap()]).unwrap();
+    let staging_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        staging_cert.to_str().unwrap(),
+    ])
+    .unwrap();
     assert!(staging_text.contains("DNS:staging.myapp.local"));
 
-    let prod_text = run_openssl(&["x509", "-noout", "-text", "-in", prod_cert.to_str().unwrap()]).unwrap();
+    let prod_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        prod_cert.to_str().unwrap(),
+    ])
+    .unwrap();
     assert!(prod_text.contains("DNS:prod.myapp.local"));
 
     unsafe {
@@ -868,10 +1015,17 @@ fn test_scenario_api_gateway_setup() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
-    let cert_text = run_openssl(&["x509", "-noout", "-text", "-in", cert_file.to_str().unwrap()])
-        .unwrap();
+    let cert_text = run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_file.to_str().unwrap(),
+    ])
+    .unwrap();
 
     // Verify all API endpoints are present
     assert!(cert_text.contains("DNS:v1.api.local"));

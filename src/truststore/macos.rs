@@ -7,6 +7,7 @@ use std::process::Command;
 
 // Trust settings plist data for SSL and basicX509 policies
 // This ensures the certificate is trusted for SSL server authentication
+#[allow(dead_code)]
 const TRUST_SETTINGS_PLIST: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

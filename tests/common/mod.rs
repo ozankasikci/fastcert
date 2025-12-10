@@ -47,13 +47,25 @@ pub fn verify_cert_with_ca(cert_path: &std::path::Path, ca_cert_path: &std::path
 
 /// Get certificate serial number
 pub fn get_cert_serial(cert_path: &std::path::Path) -> Result<String, String> {
-    run_openssl(&["x509", "-noout", "-serial", "-in", cert_path.to_str().unwrap()])
-        .map(|s| s.trim().to_string())
+    run_openssl(&[
+        "x509",
+        "-noout",
+        "-serial",
+        "-in",
+        cert_path.to_str().unwrap(),
+    ])
+    .map(|s| s.trim().to_string())
 }
 
 /// Get certificate text (full details)
 pub fn get_cert_text(cert_path: &std::path::Path) -> Result<String, String> {
-    run_openssl(&["x509", "-noout", "-text", "-in", cert_path.to_str().unwrap()])
+    run_openssl(&[
+        "x509",
+        "-noout",
+        "-text",
+        "-in",
+        cert_path.to_str().unwrap(),
+    ])
 }
 
 /// Check if certificate contains a specific SAN
