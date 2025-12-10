@@ -577,6 +577,10 @@ The CA key is the most sensitive file. Keep it secure and never share it. If you
 - Keep the CA key file permissions restricted (600)
 - Only use for local development, never production
 
+## Acknowledgments
+
+This project was inspired by [mkcert](https://github.com/FiloSottile/mkcert).
+
 ## License
 
 MIT License - see LICENSE file for details
