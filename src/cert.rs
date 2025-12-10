@@ -1,4 +1,16 @@
-//! Certificate generation
+//! Certificate generation module.
+//!
+//! This module provides functionality for generating TLS certificates signed
+//! by a local CA. It supports various certificate types including:
+//! - Server certificates for HTTPS
+//! - Client certificates for mutual TLS
+//! - Wildcard certificates
+//! - Multi-domain certificates (SAN)
+//! - PKCS#12 bundles
+//!
+//! Certificates can be generated with either RSA or ECDSA keys and support
+//! multiple subject alternative names including DNS names, IP addresses,
+//! email addresses, and URIs.
 
 use crate::{Error, Result};
 use rcgen::{KeyPair, SanType, CertificateParams, KeyUsagePurpose, ExtendedKeyUsagePurpose, PKCS_RSA_SHA256, PKCS_ECDSA_P256_SHA256};
@@ -12,17 +24,37 @@ use colored::*;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
+/// Configuration for certificate generation.
+///
+/// Specifies all parameters needed to generate a certificate including
+/// the hosts it should be valid for and output file locations.
 pub struct CertificateConfig {
+    /// List of hostnames, IP addresses, emails, or URIs for the certificate
     pub hosts: Vec<String>,
+    /// Use ECDSA instead of RSA for the key pair
     pub use_ecdsa: bool,
+    /// Generate a client authentication certificate
     pub client_cert: bool,
+    /// Generate PKCS#12 bundle instead of PEM files
     pub pkcs12: bool,
+    /// Custom path for certificate output file
     pub cert_file: Option<PathBuf>,
+    /// Custom path for private key output file
     pub key_file: Option<PathBuf>,
+    /// Custom path for PKCS#12 bundle output file
     pub p12_file: Option<PathBuf>,
 }
 
 impl CertificateConfig {
+    /// Create a new certificate configuration with the specified hosts.
+    ///
+    /// # Arguments
+    ///
+    /// * `hosts` - List of DNS names, IP addresses, emails, or URIs
+    ///
+    /// # Returns
+    ///
+    /// A new `CertificateConfig` with default settings.
     pub fn new(hosts: Vec<String>) -> Self {
         Self {
             hosts,
@@ -36,15 +68,42 @@ impl CertificateConfig {
     }
 }
 
+/// Type of host identifier in a certificate.
+///
+/// Represents the different types of subject alternative names
+/// that can appear in an X.509 certificate.
 #[derive(Debug, Clone, PartialEq)]
 pub enum HostType {
+    /// A DNS domain name (e.g., "example.com" or "*.example.com")
     DnsName(String),
+    /// An IP address (IPv4 or IPv6)
     IpAddress(IpAddr),
+    /// An email address (e.g., "user@example.com")
     Email(String),
+    /// A Uniform Resource Identifier (e.g., "https://example.com")
     Uri(String),
 }
 
 impl HostType {
+    /// Parse a host string into the appropriate HostType.
+    ///
+    /// Automatically detects the type based on the string format:
+    /// - IP addresses are parsed as `IpAddress`
+    /// - Strings with '@' are parsed as `Email`
+    /// - Strings with '://' are parsed as `Uri`
+    /// - Everything else defaults to `DnsName`
+    ///
+    /// # Arguments
+    ///
+    /// * `host` - The host string to parse
+    ///
+    /// # Returns
+    ///
+    /// The parsed `HostType`, or an error if validation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the host string is invalid for its detected type.
     pub fn parse(host: &str) -> Result<Self> {
         // Try IP address
         if let Ok(ip) = host.parse::<IpAddr>() {
@@ -511,7 +570,33 @@ pub fn print_hosts(hosts: &[String]) {
     }
 }
 
-/// Generate certificate from command line arguments - main entry point
+/// Generate a certificate from command line arguments.
+///
+/// This is the main entry point for certificate generation. It loads the CA,
+/// creates a certificate configuration, and generates the certificate with
+/// the specified parameters.
+///
+/// # Arguments
+///
+/// * `domains` - List of domains, IPs, emails, or URIs for the certificate
+/// * `cert_file` - Optional custom path for the certificate file
+/// * `key_file` - Optional custom path for the private key file
+/// * `p12_file` - Optional custom path for the PKCS#12 bundle
+/// * `client` - Generate a client authentication certificate
+/// * `ecdsa` - Use ECDSA instead of RSA for the key
+/// * `pkcs12` - Generate PKCS#12 bundle instead of PEM files
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if generation fails.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The CA cannot be loaded or created
+/// - Domain validation fails
+/// - Certificate generation fails
+/// - File writing fails
 pub fn generate_certificate(
     domains: &[String],
     cert_file: Option<&str>,
@@ -631,7 +716,27 @@ pub fn extract_san_from_csr(csr: &x509_parser::certification_request::X509Certif
     Ok(hosts)
 }
 
-/// Generate certificate from CSR
+/// Generate a certificate from a Certificate Signing Request (CSR).
+///
+/// Reads a CSR file, extracts the subject names and public key,
+/// and generates a signed certificate using the local CA.
+///
+/// # Arguments
+///
+/// * `csr_path` - Path to the CSR file (PEM format)
+/// * `cert_file` - Optional custom path for the output certificate
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if generation fails.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The CSR file cannot be read or parsed
+/// - The CSR signature is invalid
+/// - No subject names are found in the CSR
+/// - Certificate generation or signing fails
 pub fn generate_from_csr(
     csr_path: &str,
     cert_file: Option<&str>,
