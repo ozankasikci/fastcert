@@ -5,10 +5,10 @@
 
 mod common;
 
+use common::get_test_lock;
 use std::env;
 use std::fs;
 use tempfile::TempDir;
-use common::get_test_lock;
 
 #[test]
 #[cfg(unix)]
@@ -32,7 +32,8 @@ fn test_security_private_key_permissions() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify private key has restrictive permissions (0600)
     use std::os::unix::fs::PermissionsExt;
@@ -82,7 +83,8 @@ fn test_security_certificate_not_self_signed() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Read certificate and verify it's signed by CA
     use std::process::Command;
@@ -132,7 +134,8 @@ fn test_security_unique_serial_numbers() {
             false,
             false,
             false,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Get serial number
         use std::process::Command;
@@ -188,7 +191,8 @@ fn test_security_ca_certificate_validity() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify CA certificate properties
     use std::process::Command;
@@ -203,10 +207,16 @@ fn test_security_ca_certificate_validity() {
     let text = String::from_utf8_lossy(&output.stdout);
 
     // CA should have CA:TRUE basic constraint
-    assert!(text.contains("CA:TRUE"), "CA certificate should have CA:TRUE");
+    assert!(
+        text.contains("CA:TRUE"),
+        "CA certificate should have CA:TRUE"
+    );
 
     // CA should be able to sign certificates
-    assert!(text.contains("Certificate Sign"), "CA should have Certificate Sign usage");
+    assert!(
+        text.contains("Certificate Sign"),
+        "CA should have Certificate Sign usage"
+    );
 
     unsafe {
         env::remove_var("CAROOT");
@@ -223,15 +233,8 @@ fn test_error_empty_host_list() {
     }
 
     let hosts = vec![];
-    let result = fastcert::cert::generate_certificate(
-        &hosts,
-        None,
-        None,
-        None,
-        false,
-        false,
-        false,
-    );
+    let result =
+        fastcert::cert::generate_certificate(&hosts, None, None, None, false, false, false);
 
     assert!(result.is_err(), "Should fail with empty host list");
 
@@ -251,15 +254,8 @@ fn test_error_invalid_wildcard() {
 
     // Test double wildcard (should fail)
     let hosts = vec!["**.example.com".to_string()];
-    let result = fastcert::cert::generate_certificate(
-        &hosts,
-        None,
-        None,
-        None,
-        false,
-        false,
-        false,
-    );
+    let result =
+        fastcert::cert::generate_certificate(&hosts, None, None, None, false, false, false);
 
     assert!(result.is_err(), "Should fail with double wildcard");
 
@@ -289,7 +285,8 @@ fn test_certificate_expiration_date() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify certificate validity period
     use std::process::Command;
@@ -303,8 +300,14 @@ fn test_certificate_expiration_date() {
     let dates = String::from_utf8_lossy(&output.stdout);
 
     // Should have both notBefore and notAfter
-    assert!(dates.contains("notBefore="), "Certificate should have notBefore date");
-    assert!(dates.contains("notAfter="), "Certificate should have notAfter date");
+    assert!(
+        dates.contains("notBefore="),
+        "Certificate should have notBefore date"
+    );
+    assert!(
+        dates.contains("notAfter="),
+        "Certificate should have notAfter date"
+    );
 
     // Verify it's currently valid
     let verify_output = Command::new("openssl")
@@ -346,7 +349,8 @@ fn test_certificate_key_usage() {
         false,
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     use std::process::Command;
     let output = Command::new("openssl")
@@ -391,7 +395,8 @@ fn test_client_certificate_key_usage() {
         true, // Client cert
         false,
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     use std::process::Command;
     let output = Command::new("openssl")
@@ -456,9 +461,18 @@ fn test_san_types_validation() {
 
     let text = String::from_utf8_lossy(&output.stdout);
 
-    assert!(text.contains("DNS:dns.example.com"), "Should contain DNS SAN");
-    assert!(text.contains("IP Address:192.168.1.1"), "Should contain IP SAN");
-    assert!(text.contains("email:email@example.com"), "Should contain email SAN");
+    assert!(
+        text.contains("DNS:dns.example.com"),
+        "Should contain DNS SAN"
+    );
+    assert!(
+        text.contains("IP Address:192.168.1.1"),
+        "Should contain IP SAN"
+    );
+    assert!(
+        text.contains("email:email@example.com"),
+        "Should contain email SAN"
+    );
 
     unsafe {
         env::remove_var("CAROOT");

@@ -2,7 +2,10 @@
 
 use crate::{Error, Result};
 use colored::*;
-use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa, KeyPair, RsaKeySize};
+use rcgen::{
+    BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa, KeyPair,
+    RsaKeySize,
+};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -321,7 +324,8 @@ impl CertificateAuthority {
             .map_err(|e| Error::Certificate(format!("Failed to create CA parameters: {}", e)))?;
 
         // Create self-signed CA certificate
-        let cert = params.self_signed(&key_pair)
+        let cert = params
+            .self_signed(&key_pair)
             .map_err(|e| Error::Certificate(format!("Failed to generate CA certificate: {}", e)))?;
 
         let cert_pem = cert.pem();

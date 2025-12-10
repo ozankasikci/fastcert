@@ -14,11 +14,11 @@
 
 use crate::{Error, Result};
 use colored::*;
+use rcgen::string::Ia5String;
 use rcgen::{
     CertificateParams, ExtendedKeyUsagePurpose, Issuer, KeyPair, KeyUsagePurpose,
     PKCS_ECDSA_P256_SHA256, PKCS_RSA_SHA256, RsaKeySize, SanType,
 };
-use rcgen::string::Ia5String;
 use regex::Regex;
 use std::fs;
 use std::net::IpAddr;
@@ -872,7 +872,8 @@ pub fn generate_from_csr(csr_path: &str, cert_file: Option<&str>) -> Result<()> 
     copy_subject_to_params(&mut params, subject)?;
 
     // Create signed certificate
-    let cert = params.signed_by(&cert_key_pair, &issuer)
+    let cert = params
+        .signed_by(&cert_key_pair, &issuer)
         .map_err(|e| Error::Certificate(format!("Failed to create signed certificate: {}", e)))?;
 
     let cert_der = cert.der().to_vec();
@@ -1007,7 +1008,8 @@ fn generate_certificate_internal(
     }
 
     // Create the certificate signed by the CA
-    let cert = params.signed_by(&cert_key_pair, &issuer)
+    let cert = params
+        .signed_by(&cert_key_pair, &issuer)
         .map_err(|e| Error::Certificate(format!("Failed to create signed certificate: {}", e)))?;
 
     // Get certificate DER
@@ -1350,7 +1352,6 @@ mod tests {
         let temp_path = temp_dir.path();
 
         // Create a test CA
-
 
         let (ca_cert_pem, ca_key_pem) = create_test_ca();
 

@@ -2,9 +2,9 @@
 
 mod common;
 
+use common::get_test_lock;
 use std::env;
 use tempfile::TempDir;
-use common::get_test_lock;
 
 #[test]
 fn test_certificate_is_signed_by_ca() {
@@ -31,7 +31,8 @@ fn test_certificate_is_signed_by_ca() {
         false, // client cert
         false, // use ECDSA (default: RSA)
         false, // pkcs12
-    ).unwrap();
+    )
+    .unwrap();
 
     // Parse certificates using openssl command
     use std::process::Command;
@@ -63,8 +64,15 @@ fn test_certificate_is_signed_by_ca() {
     }
 
     // Extract the CN from both
-    assert!(cert_issuer.contains("fastcert"), "Certificate should be signed by fastcert CA, got: {}", cert_issuer);
-    assert!(!cert_issuer.contains("rcgen self signed"), "Certificate should NOT be self-signed by rcgen");
+    assert!(
+        cert_issuer.contains("fastcert"),
+        "Certificate should be signed by fastcert CA, got: {}",
+        cert_issuer
+    );
+    assert!(
+        !cert_issuer.contains("rcgen self signed"),
+        "Certificate should NOT be self-signed by rcgen"
+    );
 
     // Verify certificate chain
     let output = Command::new("openssl")
@@ -80,7 +88,12 @@ fn test_certificate_is_signed_by_ca() {
     if !verify_err.is_empty() {
         println!("Verification stderr: {}", verify_err);
     }
-    assert!(verify_result.contains("OK"), "Certificate should verify against CA, got: {} (stderr: {})", verify_result, verify_err);
+    assert!(
+        verify_result.contains("OK"),
+        "Certificate should verify against CA, got: {} (stderr: {})",
+        verify_result,
+        verify_err
+    );
 
     // Clean up
     unsafe {
@@ -118,7 +131,8 @@ fn test_certificate_contains_correct_sans() {
         false, // client cert
         false, // use ECDSA (default: RSA)
         false, // pkcs12
-    ).unwrap();
+    )
+    .unwrap();
 
     // Verify SANs using openssl
     use std::process::Command;
@@ -131,10 +145,22 @@ fn test_certificate_contains_correct_sans() {
 
     let cert_text = String::from_utf8_lossy(&output.stdout);
 
-    assert!(cert_text.contains("DNS:example.com"), "Should contain example.com");
-    assert!(cert_text.contains("DNS:*.example.com"), "Should contain wildcard");
-    assert!(cert_text.contains("IP Address:192.168.1.1"), "Should contain IPv4");
-    assert!(cert_text.contains("IP Address:0:0:0:0:0:0:0:1"), "Should contain IPv6");
+    assert!(
+        cert_text.contains("DNS:example.com"),
+        "Should contain example.com"
+    );
+    assert!(
+        cert_text.contains("DNS:*.example.com"),
+        "Should contain wildcard"
+    );
+    assert!(
+        cert_text.contains("IP Address:192.168.1.1"),
+        "Should contain IPv4"
+    );
+    assert!(
+        cert_text.contains("IP Address:0:0:0:0:0:0:0:1"),
+        "Should contain IPv6"
+    );
 
     // Clean up
     unsafe {
@@ -167,7 +193,8 @@ fn test_ca_uses_rsa_3072() {
         false,
         false, // RSA (default)
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Check CA key size using openssl
     use std::process::Command;
@@ -217,7 +244,8 @@ fn test_certificate_uses_rsa_2048_by_default() {
         false,
         false, // RSA (default)
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Check certificate key size using openssl
     use std::process::Command;
@@ -267,7 +295,8 @@ fn test_certificate_uses_ecdsa_p256_with_flag() {
         false,
         true, // ECDSA
         false,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Check certificate key type using openssl
     use std::process::Command;
