@@ -1,11 +1,34 @@
 # fastcert
 
+[![Crates.io](https://img.shields.io/crates/v/fastcert.svg)](https://crates.io/crates/fastcert)
+[![Homebrew](https://img.shields.io/badge/homebrew-ozankasikci%2Ftap-orange.svg)](https://github.com/ozankasikci/homebrew-tap)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen.svg)](#testing)
 [![Coverage](assets/coverage.svg)](#testing)
 
 A simple zero-config tool for making locally-trusted development certificates.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+  - [Homebrew](#homebrew)
+  - [Cargo](#cargo)
+  - [From Source](#from-source)
+  - [Prerequisites](#prerequisites)
+  - [Platform-Specific Requirements](#platform-specific-requirements)
+- [Quick Start](#quick-start)
+- [Usage Examples](#usage-examples)
+- [Platform Support](#platform-support)
+- [Advanced Options](#advanced-options)
+- [How It Works](#how-it-works)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [Security](#security)
+- [License](#license)
 
 ## Overview
 
@@ -29,6 +52,18 @@ fastcert is a command-line tool that makes it easy to create and manage locally-
 
 ## Installation
 
+### Homebrew
+
+```bash
+brew install ozankasikci/tap/fastcert
+```
+
+### Cargo
+
+```bash
+cargo install fastcert
+```
+
 ### From Source
 
 1. Clone the repository:
@@ -43,8 +78,6 @@ cargo install --path .
 ```
 
 This will install the `fastcert` binary to your cargo bin directory (usually `~/.cargo/bin`).
-
-### Build from Source
 
 For development or custom builds:
 
