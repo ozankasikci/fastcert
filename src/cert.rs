@@ -53,7 +53,8 @@ impl HostType {
         }
 
         // Try email (simple check)
-        if host.contains('@') && host.contains('.') {
+        if host.contains('@') {
+            validate_email_address(host)?;
             return Ok(HostType::Email(host.to_string()));
         }
 
@@ -71,9 +72,6 @@ impl HostType {
 pub fn validate_ip_address(ip: &IpAddr) -> Result<()> {
     match ip {
         IpAddr::V4(ipv4) => {
-            // Check for valid IPv4 ranges (not multicast, not reserved)
-            let octets = ipv4.octets();
-
             // Allow all valid IPv4 addresses for development
             // Just ensure it's not unspecified
             if ipv4.is_unspecified() {
@@ -91,6 +89,20 @@ pub fn validate_ip_address(ip: &IpAddr) -> Result<()> {
             Ok(())
         }
     }
+}
+
+/// Validate email address using regex
+pub fn validate_email_address(email: &str) -> Result<()> {
+    // RFC 5322 compliant email validation (simplified)
+    let email_regex = Regex::new(
+        r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+    ).unwrap();
+
+    if !email_regex.is_match(email) {
+        return Err(Error::InvalidHostname(format!("Invalid email address: {}", email)));
+    }
+
+    Ok(())
 }
 
 pub fn validate_hostname(hostname: &str) -> Result<()> {
@@ -1182,5 +1194,19 @@ mod tests {
 
         // Invalid IPv6 - unspecified
         assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))).is_err());
+    }
+
+    #[test]
+    fn test_email_address_validation() {
+        // Valid email addresses
+        assert!(validate_email_address("test@example.com").is_ok());
+        assert!(validate_email_address("user.name@example.co.uk").is_ok());
+        assert!(validate_email_address("user+tag@example.com").is_ok());
+
+        // Invalid email addresses
+        assert!(validate_email_address("notanemail").is_err());
+        assert!(validate_email_address("@example.com").is_err());
+        assert!(validate_email_address("test@").is_err());
+        assert!(validate_email_address("test @example.com").is_err());
     }
 }
