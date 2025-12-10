@@ -40,3 +40,15 @@ pub fn debug_log<T: std::fmt::Debug>(label: &str, value: &T) {
         eprintln!("[DEBUG] {}: {:?}", label, value);
     }
 }
+
+/// Check if quiet mode is enabled
+pub fn is_quiet() -> bool {
+    std::env::var("RSCERT_QUIET").is_ok()
+}
+
+/// Print message only if not in quiet mode
+pub fn info_print(msg: &str) {
+    if !is_quiet() {
+        println!("{}", msg);
+    }
+}

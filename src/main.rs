@@ -83,6 +83,10 @@ struct Cli {
     #[arg(long)]
     debug: bool,
 
+    /// Suppress all output except errors
+    #[arg(short, long)]
+    quiet: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
@@ -103,6 +107,13 @@ fn main() -> Result<()> {
         unsafe {
             std::env::set_var("RSCERT_DEBUG", "1");
             std::env::set_var("RSCERT_VERBOSE", "1");
+        }
+    }
+
+    // Set quiet mode if requested (overrides verbose/debug)
+    if cli.quiet {
+        unsafe {
+            std::env::set_var("RSCERT_QUIET", "1");
         }
     }
 
