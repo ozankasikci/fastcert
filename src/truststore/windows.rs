@@ -112,7 +112,7 @@ impl WindowsRootStore {
             let mut prev_cert: *const CERT_CONTEXT = ptr::null();
 
             loop {
-                prev_cert = CertEnumCertificatesInStore(self.handle, prev_cert);
+                prev_cert = CertEnumCertificatesInStore(self.handle, Some(prev_cert));
 
                 if prev_cert.is_null() {
                     break;
@@ -135,7 +135,7 @@ impl WindowsRootStore {
 
     fn add_cert(&self, cert_der: &[u8]) -> Result<()> {
         unsafe {
-            let result = CertAddEncodedCertificateToStore(
+            CertAddEncodedCertificateToStore(
                 self.handle,
                 X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
                 cert_der,
@@ -157,12 +157,6 @@ impl WindowsRootStore {
                 }
             })?;
 
-            if !result.as_bool() {
-                return Err(Error::TrustStore(
-                    "Failed to add certificate to store: Operation returned failure".to_string(),
-                ));
-            }
-
             Ok(())
         }
     }
@@ -173,7 +167,7 @@ impl WindowsRootStore {
             let mut deleted_any = false;
 
             loop {
-                prev_cert = CertEnumCertificatesInStore(self.handle, prev_cert);
+                prev_cert = CertEnumCertificatesInStore(self.handle, Some(prev_cert));
 
                 if prev_cert.is_null() {
                     break;
@@ -187,13 +181,7 @@ impl WindowsRootStore {
 
                 if stored_cert == cert_der {
                     // Duplicate the context so it doesn't stop enumeration when we delete it
-                    let dup_cert =
-                        CertDuplicateCertificateContext(Some(prev_cert)).map_err(|e| {
-                            Error::TrustStore(format!(
-                                "Failed to duplicate certificate context: {}",
-                                windows_error_string(e)
-                            ))
-                        })?;
+                    let dup_cert = CertDuplicateCertificateContext(Some(prev_cert));
 
                     if dup_cert.is_null() {
                         return Err(Error::TrustStore(
