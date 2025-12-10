@@ -52,3 +52,30 @@ pub fn info_print(msg: &str) {
         println!("{}", msg);
     }
 }
+
+/// Output format options
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum OutputFormat {
+    Text,
+    Json,
+    Yaml,
+}
+
+impl OutputFormat {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "text" => Some(Self::Text),
+            "json" => Some(Self::Json),
+            "yaml" => Some(Self::Yaml),
+            _ => None,
+        }
+    }
+}
+
+/// Get the configured output format
+pub fn get_output_format() -> OutputFormat {
+    std::env::var("RSCERT_FORMAT")
+        .ok()
+        .and_then(|s| OutputFormat::from_str(&s))
+        .unwrap_or(OutputFormat::Text)
+}
