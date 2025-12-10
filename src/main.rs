@@ -79,6 +79,10 @@ struct Cli {
     #[arg(short, long)]
     verbose: bool,
 
+    /// Enable debug output
+    #[arg(long)]
+    debug: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
@@ -90,6 +94,14 @@ fn main() -> Result<()> {
     // Set verbose mode if requested
     if cli.verbose {
         unsafe {
+            std::env::set_var("RSCERT_VERBOSE", "1");
+        }
+    }
+
+    // Set debug mode if requested (implies verbose)
+    if cli.debug {
+        unsafe {
+            std::env::set_var("RSCERT_DEBUG", "1");
             std::env::set_var("RSCERT_VERBOSE", "1");
         }
     }

@@ -21,3 +21,22 @@ pub fn verbose_print(msg: &str) {
         eprintln!("[VERBOSE] {}", msg);
     }
 }
+
+/// Check if debug mode is enabled
+pub fn is_debug() -> bool {
+    std::env::var("RSCERT_DEBUG").is_ok()
+}
+
+/// Print debug message
+pub fn debug_print(msg: &str) {
+    if is_debug() {
+        eprintln!("[DEBUG] {}", msg);
+    }
+}
+
+/// Log debug information about a value
+pub fn debug_log<T: std::fmt::Debug>(label: &str, value: &T) {
+    if is_debug() {
+        eprintln!("[DEBUG] {}: {:?}", label, value);
+    }
+}
