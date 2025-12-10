@@ -76,6 +76,19 @@ pub fn validate_hostname(hostname: &str) -> Result<()> {
     Ok(())
 }
 
+/// Convert international domain name to ASCII using IDNA (punycode)
+pub fn domain_to_ascii(domain: &str) -> Result<String> {
+    match idna::domain_to_ascii(domain) {
+        Ok(ascii) => Ok(ascii),
+        Err(_) => Err(Error::InvalidHostname(format!("Invalid international domain name: {}", domain)))
+    }
+}
+
+/// Convert ASCII domain name back to Unicode using IDNA
+pub fn domain_to_unicode(domain: &str) -> String {
+    idna::domain_to_unicode(domain).0
+}
+
 fn generate_keypair(use_ecdsa: bool) -> Result<KeyPair> {
     let alg = if use_ecdsa {
         &PKCS_ECDSA_P256_SHA256
@@ -1001,5 +1014,24 @@ mod tests {
 
         assert!(cert_pem.contains("BEGIN CERTIFICATE"));
         assert!(key_pem.contains("BEGIN PRIVATE KEY"));
+    }
+
+    #[test]
+    fn test_idna_domain_to_ascii() {
+        let ascii = domain_to_ascii("例え.jp").unwrap();
+        assert!(ascii.starts_with("xn--"));
+        assert_eq!(ascii, "xn--r8jz45g.jp");
+    }
+
+    #[test]
+    fn test_idna_domain_to_unicode() {
+        let unicode = domain_to_unicode("xn--r8jz45g.jp");
+        assert_eq!(unicode, "例え.jp");
+    }
+
+    #[test]
+    fn test_idna_ascii_passthrough() {
+        let ascii = domain_to_ascii("example.com").unwrap();
+        assert_eq!(ascii, "example.com");
     }
 }
