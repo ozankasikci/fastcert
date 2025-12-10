@@ -1,10 +1,26 @@
-//! Platform-specific trust store implementations
+//! Platform-specific trust store implementations.
+//!
+//! This module provides integration with system and application trust stores
+//! across different platforms. It supports:
+//! - System trust stores (macOS Keychain, Linux CA certificates, Windows Certificate Store)
+//! - NSS-based browsers (Firefox, Chrome on Linux)
+//! - Java KeyStore
+//!
+//! Trust store selection can be controlled via the `TRUST_STORES` environment
+//! variable (comma-separated list of: system, nss, java).
 
 use crate::Result;
 use std::path::Path;
 use std::env;
 
-/// Parse TRUST_STORES environment variable to determine which stores to use
+/// Parse TRUST_STORES environment variable to determine which stores to use.
+///
+/// If the environment variable is not set, all available stores are enabled
+/// by default (system, nss, java).
+///
+/// # Returns
+///
+/// A vector of enabled store names (lowercase).
 pub fn get_enabled_stores() -> Vec<String> {
     if let Ok(trust_stores) = env::var("TRUST_STORES") {
         trust_stores
@@ -18,13 +34,28 @@ pub fn get_enabled_stores() -> Vec<String> {
     }
 }
 
-/// Check if a specific store is enabled
+/// Check if a specific trust store is enabled via environment variable.
+///
+/// # Arguments
+///
+/// * `store` - The store name to check (case-insensitive)
+///
+/// # Returns
+///
+/// `true` if the store is enabled, `false` otherwise.
 pub fn is_store_enabled(store: &str) -> bool {
     let enabled = get_enabled_stores();
     enabled.contains(&store.to_lowercase())
 }
 
-/// Enumerate all available trust stores on this system
+/// Enumerate all available trust stores on this system.
+///
+/// Checks for the presence of required tools (certutil, keytool) and
+/// returns a list of trust stores that can be used.
+///
+/// # Returns
+///
+/// A vector of human-readable store descriptions.
 pub fn enumerate_available_stores() -> Vec<String> {
     let mut stores = Vec::new();
 
@@ -63,12 +94,33 @@ pub mod windows;
 pub mod nss;
 pub mod java;
 
+/// Common interface for trust store operations.
+///
+/// Implementations handle platform-specific certificate installation
+/// and removal from trust stores.
 pub trait TrustStore {
+    /// Check if the certificate is installed in this trust store.
     fn check(&self) -> Result<bool>;
+
+    /// Install the certificate to this trust store.
     fn install(&self) -> Result<()>;
+
+    /// Remove the certificate from this trust store.
     fn uninstall(&self) -> Result<()>;
 }
 
+/// Install CA certificate to macOS trust stores.
+///
+/// Installs the certificate to the System Keychain and optionally to
+/// Firefox NSS and Java KeyStore if available.
+///
+/// # Arguments
+///
+/// * `cert_path` - Path to the CA certificate file
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if installation fails.
 #[cfg(target_os = "macos")]
 pub fn install_macos(cert_path: &Path) -> Result<()> {
     // Install to system store if enabled
@@ -106,6 +158,18 @@ pub fn install_macos(cert_path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Uninstall CA certificate from macOS trust stores.
+///
+/// Removes the certificate from the System Keychain and optionally from
+/// Firefox NSS and Java KeyStore if they were previously installed.
+///
+/// # Arguments
+///
+/// * `cert_path` - Path to the CA certificate file
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if uninstallation fails.
 #[cfg(target_os = "macos")]
 pub fn uninstall_macos(cert_path: &Path) -> Result<()> {
     let store = macos::MacOSTrustStore::new(cert_path);
@@ -132,6 +196,18 @@ pub fn uninstall_macos(cert_path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Install CA certificate to Linux trust stores.
+///
+/// Installs the certificate to the system CA directory and optionally to
+/// Firefox NSS and Java KeyStore if available.
+///
+/// # Arguments
+///
+/// * `cert_path` - Path to the CA certificate file
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if installation fails.
 #[cfg(target_os = "linux")]
 pub fn install_linux(cert_path: &Path) -> Result<()> {
     // Install to system store if enabled
@@ -169,6 +245,18 @@ pub fn install_linux(cert_path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Uninstall CA certificate from Linux trust stores.
+///
+/// Removes the certificate from the system CA directory and optionally from
+/// Firefox NSS and Java KeyStore if they were previously installed.
+///
+/// # Arguments
+///
+/// * `cert_path` - Path to the CA certificate file
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if uninstallation fails.
 #[cfg(target_os = "linux")]
 pub fn uninstall_linux(cert_path: &Path) -> Result<()> {
     let store = linux::LinuxTrustStore::new(cert_path);
@@ -195,6 +283,18 @@ pub fn uninstall_linux(cert_path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Install CA certificate to Windows trust stores.
+///
+/// Installs the certificate to the Windows Certificate Store and optionally
+/// to Firefox NSS and Java KeyStore if available.
+///
+/// # Arguments
+///
+/// * `cert_path` - Path to the CA certificate file
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if installation fails.
 #[cfg(target_os = "windows")]
 pub fn install_windows(cert_path: &Path) -> Result<()> {
     // Install to system store if enabled
@@ -232,6 +332,18 @@ pub fn install_windows(cert_path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Uninstall CA certificate from Windows trust stores.
+///
+/// Removes the certificate from the Windows Certificate Store and optionally
+/// from Firefox NSS and Java KeyStore if they were previously installed.
+///
+/// # Arguments
+///
+/// * `cert_path` - Path to the CA certificate file
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if uninstallation fails.
 #[cfg(target_os = "windows")]
 pub fn uninstall_windows(cert_path: &Path) -> Result<()> {
     let store = windows::WindowsTrustStore::new(cert_path);
