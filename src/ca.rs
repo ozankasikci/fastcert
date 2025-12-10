@@ -694,7 +694,7 @@ mod tests {
         assert!(ca.cert_exists(), "CA certificate should be created");
         assert!(ca.key_exists(), "CA key should be created");
 
-        let cert_pem = fs::read_to_string(&ca.cert_path()).unwrap();
+        let cert_pem = fs::read_to_string(ca.cert_path()).unwrap();
         assert!(
             cert_pem.contains("BEGIN CERTIFICATE"),
             "Certificate should be in PEM format"
