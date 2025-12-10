@@ -29,10 +29,23 @@ jobs:
       - name: Extract coverage percentage
         id: coverage
         run: |
-          # Extract coverage from cobertura.xml using standard grep
-          COVERAGE=$(grep 'line-rate=' cobertura.xml | head -1 | sed 's/.*line-rate="\([^"]*\)".*/\1/' | awk '{printf "%.2f", $1*100}')
-          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
-          echo "Coverage: $COVERAGE%"
+          # Extract coverage from tarpaulin output and cobertura.xml
+          # First try to get from tarpaulin's direct output (more reliable)
+          if [ -f cobertura.xml ]; then
+            # Use Python to parse XML properly
+            COVERAGE=$(python3 -c "
+import xml.etree.ElementTree as ET
+tree = ET.parse('cobertura.xml')
+root = tree.getroot()
+line_rate = float(root.attrib.get('line-rate', 0))
+print(f'{line_rate * 100:.2f}')
+            ")
+            echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+            echo "Coverage: $COVERAGE%"
+          else
+            echo "percentage=0.00" >> $GITHUB_OUTPUT
+            echo "Coverage file not found"
+          fi
 
       - name: Install coverage-badge CLI
         run: cargo install coverage-badge
