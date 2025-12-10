@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 
-A Rust implementation of mkcert - a simple zero-config tool for making locally-trusted development certificates.
+A simple zero-config tool for making locally-trusted development certificates.
 
 ## Overview
 
