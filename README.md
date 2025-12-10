@@ -303,9 +303,128 @@ rscert automatically detects and integrates with:
 - Firefox/Chrome (via NSS)
 - Java KeyStore
 
+## Troubleshooting
+
+### Certificate Not Trusted
+
+**Problem:** Browser shows "Not Secure" or certificate warning.
+
+**Solutions:**
+1. Make sure you ran `rscert -install` before generating certificates
+2. Restart your browser after installing the CA
+3. On Linux, you may need to manually trust the CA certificate
+4. Check that the certificate was generated for the correct domain
+
+### Permission Denied
+
+**Problem:** Error installing CA certificate.
+
+**Solutions:**
+- macOS: The system will prompt for your password
+- Linux: Run with `sudo` if installing system-wide
+- Windows: Run as Administrator
+
+### Firefox Not Trusting Certificates
+
+**Problem:** Firefox shows certificate error even though system trusts it.
+
+**Solutions:**
+1. Install NSS tools (certutil):
+   ```bash
+   # Debian/Ubuntu
+   sudo apt install libnss3-tools
+
+   # macOS
+   brew install nss
+   ```
+2. Run `rscert -install` again
+3. Restart Firefox
+
+### Java Applications Not Trusting Certificates
+
+**Problem:** Java applications reject certificates.
+
+**Solutions:**
+1. Make sure Java is installed
+2. Run `rscert -install` to add CA to Java trust store
+3. Restart Java applications
+
+### CA Already Exists
+
+**Problem:** Want to recreate the CA.
+
+**Solution:**
+```bash
+# Uninstall from trust stores
+rscert -uninstall
+
+# Find CA location
+rscert -CAROOT
+
+# Delete the CA directory
+rm -rf $(rscert -CAROOT)
+
+# Reinstall
+rscert -install
+```
+
+### Wrong Domain in Certificate
+
+**Problem:** Certificate generated for wrong domain.
+
+**Solution:**
+Delete the certificate files and regenerate:
+```bash
+rm example.com*.pem
+rscert example.com
+```
+
+### Multiple CAs
+
+**Problem:** Need different CAs for different projects.
+
+**Solution:**
+Use the CAROOT environment variable:
+```bash
+# Project 1
+export CAROOT="$HOME/ca-project1"
+rscert -install
+rscert project1.local
+
+# Project 2
+export CAROOT="$HOME/ca-project2"
+rscert -install
+rscert project2.local
+```
+
+### Certificate Expired
+
+**Problem:** Certificate has expired.
+
+**Solution:**
+Certificates are valid for 825 days. Simply regenerate:
+```bash
+rscert example.com
+```
+
+### Debugging Issues
+
+Enable verbose or debug mode for detailed output:
+```bash
+rscert --verbose example.com
+rscert --debug -install
+```
+
 ## Security
 
 The CA key is the most sensitive file. Keep it secure and never share it. If you suspect it has been compromised, you should uninstall the CA and delete the CAROOT directory.
+
+**Best Practices:**
+- Never commit CA certificates or keys to version control
+- Don't share the CA key with others
+- Use different CAs for different trust boundaries
+- Regularly rotate certificates (regenerate every few months)
+- Keep the CA key file permissions restricted (600)
 
 ## License
 
