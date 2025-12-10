@@ -262,24 +262,44 @@ pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, Pat
     (cert_file, key_file, p12_file)
 }
 
-/// Write PEM files with appropriate permissions
+/// Write PEM files with appropriate permissions using buffered I/O
 /// Certificate files: 0644 (readable by all)
 /// Key files: 0600 (readable only by owner)
 /// If cert and key are in the same file, use 0600
 pub fn write_pem_files(cert_path: &PathBuf, key_path: &PathBuf, cert_pem: &str, key_pem: &str) -> Result<()> {
+    use std::io::BufWriter;
+
     if cert_path == key_path {
         // Combined file: write both cert and key with restricted permissions (0600)
-        let combined = format!("{}{}", cert_pem, key_pem);
-        fs::write(cert_path, combined.as_bytes())
+        let file = std::fs::File::create(cert_path)
+            .map_err(|e| Error::Io(e))?;
+        let mut writer = BufWriter::new(file);
+        use std::io::Write;
+        writer.write_all(cert_pem.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        writer.write_all(key_pem.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        writer.flush()
             .map_err(|e| Error::Io(e))?;
         set_file_permissions(cert_path, 0o600)?;
     } else {
         // Separate files
-        fs::write(cert_path, cert_pem.as_bytes())
+        let cert_file = std::fs::File::create(cert_path)
+            .map_err(|e| Error::Io(e))?;
+        let mut cert_writer = BufWriter::new(cert_file);
+        use std::io::Write;
+        cert_writer.write_all(cert_pem.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        cert_writer.flush()
             .map_err(|e| Error::Io(e))?;
         set_file_permissions(cert_path, 0o644)?;
 
-        fs::write(key_path, key_pem.as_bytes())
+        let key_file = std::fs::File::create(key_path)
+            .map_err(|e| Error::Io(e))?;
+        let mut key_writer = BufWriter::new(key_file);
+        key_writer.write_all(key_pem.as_bytes())
+            .map_err(|e| Error::Io(e))?;
+        key_writer.flush()
             .map_err(|e| Error::Io(e))?;
         set_file_permissions(key_path, 0o600)?;
     }
