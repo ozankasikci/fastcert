@@ -99,7 +99,7 @@ impl LinuxTrustStore {
 
     /// Get the system trust store path for the certificate
     fn system_cert_path(&self) -> Option<PathBuf> {
-        self.distro.cert_path("rscert-rootCA")
+        self.distro.cert_path("fastcert-rootCA")
     }
 
     /// Run a command with sudo if needed

@@ -35,9 +35,9 @@ pub fn get_caroot() -> Result<String> {
 ///
 /// Checks the `CAROOT` environment variable first, then falls back to
 /// platform-specific default locations:
-/// - macOS: `~/Library/Application Support/rscert`
-/// - Windows: `%LOCALAPPDATA%\rscert`
-/// - Linux: `~/.local/share/rscert`
+/// - macOS: `~/Library/Application Support/fastcert`
+/// - Windows: `%LOCALAPPDATA%\fastcert`
+/// - Linux: `~/.local/share/fastcert`
 ///
 /// # Returns
 ///
@@ -59,21 +59,21 @@ fn get_caroot_path() -> Result<PathBuf> {
             return Ok(home
                 .join("Library")
                 .join("Application Support")
-                .join("rscert"));
+                .join("fastcert"));
         }
     }
 
     #[cfg(target_os = "windows")]
     {
         if let Some(local_app_data) = dirs::data_local_dir() {
-            return Ok(local_app_data.join("rscert"));
+            return Ok(local_app_data.join("fastcert"));
         }
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         if let Some(data_dir) = dirs::data_dir() {
-            return Ok(data_dir.join("rscert"));
+            return Ok(data_dir.join("fastcert"));
         }
     }
 
@@ -615,7 +615,7 @@ mod tests {
 
     #[test]
     fn test_ca_paths() {
-        let temp_dir = std::env::temp_dir().join("rscert_test_ca");
+        let temp_dir = std::env::temp_dir().join("fastcert_test_ca");
         let ca = CertificateAuthority::new(temp_dir.clone());
 
         assert_eq!(ca.root_path(), temp_dir.as_path());
@@ -628,7 +628,7 @@ mod tests {
 
     #[test]
     fn test_ca_init() {
-        let temp_dir = std::env::temp_dir().join("rscert_test_init");
+        let temp_dir = std::env::temp_dir().join("fastcert_test_init");
 
         // Remove if exists
         let _ = fs::remove_dir_all(&temp_dir);
@@ -645,7 +645,7 @@ mod tests {
 
     #[test]
     fn test_ca_lifecycle() {
-        let temp_dir = std::env::temp_dir().join("rscert_test_lifecycle");
+        let temp_dir = std::env::temp_dir().join("fastcert_test_lifecycle");
         let _ = fs::remove_dir_all(&temp_dir);
 
         let mut ca = CertificateAuthority::new(temp_dir.clone());

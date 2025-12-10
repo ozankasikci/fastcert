@@ -45,7 +45,7 @@ pub fn get_binary_name() -> String {
                 .and_then(|name| name.to_str())
                 .map(|s| s.to_string())
         })
-        .unwrap_or_else(|| "rscert".to_string())
+        .unwrap_or_else(|| "fastcert".to_string())
 }
 
 /// Check if a command exists in the system PATH
@@ -78,7 +78,7 @@ mod tests {
     fn test_get_binary_name() {
         let name = get_binary_name();
         assert!(!name.is_empty());
-        assert!(name == "rscert" || name.contains("rscert"));
+        assert!(name == "fastcert" || name.contains("fastcert"));
     }
 
     #[test]

@@ -64,7 +64,7 @@ impl MacOSTrustStore {
                 "find-certificate",
                 "-a",
                 "-c",
-                "rscert",
+                "fastcert",
                 "/Library/Keychains/System.keychain",
             ],
             false,
