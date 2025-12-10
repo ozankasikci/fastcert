@@ -10,7 +10,7 @@ documentation = "https://github.com/ozankasikci/fastcert#readme"
 readme = "README.md"
 keywords = ["certificate", "tls", "ssl", "development", "localhost"]
 categories = ["command-line-utilities", "development-tools"]
-authors = ["Ozan Kasikci <ozankasikci@gmail.com>"]
+authors = ["Ozan Kasikci <ozan@kasikci.io>"]
 
 [dependencies]
 anyhow = "1.0"
