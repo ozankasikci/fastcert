@@ -1383,4 +1383,57 @@ mod tests {
         assert!(verify_file_permissions(&file_path, 0o600).unwrap());
         assert!(!verify_file_permissions(&file_path, 0o644).unwrap());
     }
+
+    #[test]
+    fn test_concurrent_certificate_generation() {
+        use std::sync::Arc;
+        use std::thread;
+        use tempfile::TempDir;
+
+        let temp_dir = Arc::new(TempDir::new().unwrap());
+
+        // Create a shared CA certificate
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = Arc::new(rcgen::Certificate::from_params(ca_params).unwrap());
+
+        // Spawn multiple threads to generate certificates concurrently
+        let mut handles = vec![];
+
+        for i in 0..3 {
+            let temp_dir = Arc::clone(&temp_dir);
+            let ca_cert = Arc::clone(&ca_cert);
+
+            let handle = thread::spawn(move || {
+                let hosts = vec![format!("test{}.example.com", i)];
+                let mut config = CertificateConfig::new(hosts);
+                config.use_ecdsa = true;
+
+                let cert_path = temp_dir.path().join(format!("cert{}.pem", i));
+                let key_path = temp_dir.path().join(format!("key{}.pem", i));
+
+                config.cert_file = Some(cert_path.clone());
+                config.key_file = Some(key_path.clone());
+
+                let result = generate_certificate_internal(&config, &ca_cert);
+                assert!(result.is_ok(), "Concurrent certificate generation failed");
+
+                // Verify files exist
+                assert!(cert_path.exists(), "Certificate file not created");
+                assert!(key_path.exists(), "Key file not created");
+            });
+
+            handles.push(handle);
+        }
+
+        // Wait for all threads to complete
+        for handle in handles {
+            handle.join().unwrap();
+        }
+    }
 }
