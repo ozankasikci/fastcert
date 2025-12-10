@@ -425,14 +425,6 @@ fastcert --debug -install
 
 **No.** fastcert is designed for development and testing only. Never use these certificates in production environments. The CA key is stored locally without additional protection, making it unsuitable for production use.
 
-### How is this different from mkcert?
-
-fastcert is a Rust implementation inspired by mkcert. The main differences:
-- Written in Rust instead of Go
-- Similar command-line interface and behavior
-- Cross-platform support for macOS, Linux, and Windows
-- Automatic trust store integration
-
 ### Can I use this for internal services?
 
 While technically possible, it's not recommended. For internal services, consider using a proper internal PKI solution. fastcert is best suited for local development.
