@@ -48,6 +48,22 @@ pub fn get_binary_name() -> String {
         .unwrap_or_else(|| "rscert".to_string())
 }
 
+/// Check if a command exists in the system PATH
+pub fn command_exists(command: &str) -> bool {
+    use std::process::Command;
+
+    #[cfg(windows)]
+    let check_command = "where";
+    #[cfg(not(windows))]
+    let check_command = "which";
+
+    Command::new(check_command)
+        .arg(command)
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -63,5 +79,18 @@ mod tests {
         let name = get_binary_name();
         assert!(!name.is_empty());
         assert!(name == "rscert" || name.contains("rscert"));
+    }
+
+    #[test]
+    fn test_command_exists() {
+        // Test with a command that should exist on all systems
+        #[cfg(unix)]
+        assert!(command_exists("ls"), "ls should exist on Unix systems");
+
+        #[cfg(windows)]
+        assert!(command_exists("cmd"), "cmd should exist on Windows");
+
+        // Test with a command that definitely doesn't exist
+        assert!(!command_exists("this_command_definitely_does_not_exist_12345"));
     }
 }
