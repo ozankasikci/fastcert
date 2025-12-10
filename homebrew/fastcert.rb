@@ -1,26 +1,26 @@
 class Fastcert < Formula
   desc "Simple zero-config tool for making locally-trusted development certificates"
   homepage "https://github.com/ozankasikci/fastcert"
-  version "0.1.2"
+  version "0.2.0"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/ozankasikci/fastcert/releases/download/v0.1.2/fastcert-x86_64-apple-darwin.tar.gz"
-      sha256 "7024b47f3b50db85ee2b783d9b2754bc55cccc5b321a0a3ece5bec5cf9506966"
+      url "https://github.com/ozankasikci/fastcert/releases/download/v0.2.0/fastcert-x86_64-apple-darwin.tar.gz"
+      sha256 "33cb9e043d7bffe8c0330e69999810895ba402cdcd5b806c6d3fcdfd0012178f"
     else
-      url "https://github.com/ozankasikci/fastcert/releases/download/v0.1.2/fastcert-aarch64-apple-darwin.tar.gz"
-      sha256 "d8bcba75ff9dfc499bf4ad2f1832fce841809497f2c9265b58b6f9ae03d93c63"
+      url "https://github.com/ozankasikci/fastcert/releases/download/v0.2.0/fastcert-aarch64-apple-darwin.tar.gz"
+      sha256 "b04e2030df3bccbbb254328528d73742aa4b9d0542b70daca0cc0ea5c7be64dd"
     end
   end
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/ozankasikci/fastcert/releases/download/v0.1.2/fastcert-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "04757d551370b600d99d51c27e40698aee6b374da0d55c3275206a91973a696b"
+      url "https://github.com/ozankasikci/fastcert/releases/download/v0.2.0/fastcert-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "e7d7ac8a96504f3e6ad2fd83d28120e8f96b11691d0c85cdedb50d92e79b64d1"
     else
-      url "https://github.com/ozankasikci/fastcert/releases/download/v0.1.2/fastcert-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "c570b47daa7846c810304ee76e2e883a9be3ab5ed2d2f0a731b39a600f14a48e"
+      url "https://github.com/ozankasikci/fastcert/releases/download/v0.2.0/fastcert-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "619b6340f76b33f33f2694e7679845dba7bfe6c1f90aa1f238d24a4626c23e9f"
     end
   end
 
