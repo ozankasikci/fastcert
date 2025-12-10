@@ -1,6 +1,6 @@
-//! rscert - A simple zero-config tool to make locally-trusted development certificates.
+//! fastcert - A simple zero-config tool to make locally-trusted development certificates.
 //!
-//! This is the command-line interface for rscert, providing certificate generation
+//! This is the command-line interface for fastcert, providing certificate generation
 //! and CA management functionality. The main function parses command-line arguments
 //! and dispatches to the appropriate modules for:
 //! - CA installation and uninstallation
@@ -9,23 +9,23 @@
 //! - PKCS#12 bundle creation
 
 use clap::Parser;
-use rscert::Result;
+use fastcert::Result;
 
 const AFTER_HELP: &str = "\
 EXAMPLES:
-    $ rscert -install
+    $ fastcert -install
     Install the local CA in the system trust store.
 
-    $ rscert example.org
+    $ fastcert example.org
     Generate \"example.org.pem\" and \"example.org-key.pem\".
 
-    $ rscert example.com myapp.dev localhost 127.0.0.1 ::1
+    $ fastcert example.com myapp.dev localhost 127.0.0.1 ::1
     Generate \"example.com+4.pem\" and \"example.com+4-key.pem\".
 
-    $ rscert \"*.example.it\"
+    $ fastcert \"*.example.it\"
     Generate \"_wildcard.example.it.pem\" and \"_wildcard.example.it-key.pem\".
 
-    $ rscert -uninstall
+    $ fastcert -uninstall
     Uninstall the local CA (but do not delete it).
 
 ENVIRONMENT:
@@ -45,7 +45,7 @@ ENVIRONMENT:
 /// The structure is parsed from command-line arguments and used to
 /// determine which operations to perform.
 #[derive(Parser, Debug)]
-#[command(name = "rscert")]
+#[command(name = "fastcert")]
 #[command(version)]
 #[command(about = "A simple zero-config tool to make locally-trusted development certificates")]
 #[command(after_help = AFTER_HELP)]
@@ -107,7 +107,7 @@ struct Cli {
     domains: Vec<String>,
 }
 
-/// Main entry point for the rscert command-line tool.
+/// Main entry point for the fastcert command-line tool.
 ///
 /// Parses command-line arguments and executes the requested operations:
 /// - `-install`: Install the local CA to system trust stores
@@ -157,7 +157,7 @@ fn main() -> Result<()> {
             eprintln!("ERROR: you can't set -install/-uninstall and -CAROOT at the same time");
             std::process::exit(1);
         }
-        println!("{}", rscert::ca::get_caroot()?);
+        println!("{}", fastcert::ca::get_caroot()?);
         return Ok(());
     }
 
@@ -181,13 +181,13 @@ fn main() -> Result<()> {
 
     // If no arguments, show usage
     if !cli.install && !cli.uninstall && cli.domains.is_empty() && cli.csr.is_none() {
-        Cli::parse_from(["rscert", "--help"]);
+        Cli::parse_from(["fastcert", "--help"]);
         return Ok(());
     }
 
     // Handle -install mode
     if cli.install {
-        rscert::ca::install()?;
+        fastcert::ca::install()?;
         if cli.domains.is_empty() && cli.csr.is_none() {
             return Ok(());
         }
@@ -195,19 +195,19 @@ fn main() -> Result<()> {
 
     // Handle -uninstall mode
     if cli.uninstall {
-        rscert::ca::uninstall()?;
+        fastcert::ca::uninstall()?;
         return Ok(());
     }
 
     // Handle CSR-based certificate generation
     if let Some(csr_path) = cli.csr {
-        rscert::cert::generate_from_csr(&csr_path, cli.cert_file.as_deref())?;
+        fastcert::cert::generate_from_csr(&csr_path, cli.cert_file.as_deref())?;
         return Ok(());
     }
 
     // Handle regular certificate generation
     if !cli.domains.is_empty() {
-        rscert::cert::generate_certificate(
+        fastcert::cert::generate_certificate(
             &cli.domains,
             cli.cert_file.as_deref(),
             cli.key_file.as_deref(),
