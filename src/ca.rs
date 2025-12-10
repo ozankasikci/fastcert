@@ -6,6 +6,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use rcgen::{Certificate, CertificateParams, DistinguishedName, DnType, IsCa, BasicConstraints};
 use time::{OffsetDateTime, Duration};
+use colored::*;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -164,7 +165,7 @@ impl CertificateAuthority {
     }
 
     pub fn create_ca(&mut self) -> Result<()> {
-        eprintln!("Generating CA certificate...");
+        eprintln!("{}", "Generating CA certificate...".cyan());
         let params = create_ca_params()
             .map_err(|e| Error::Certificate(format!("Failed to create CA parameters: {}", e)))?;
 
@@ -234,7 +235,7 @@ impl CertificateAuthority {
         } else {
             self.create_ca()?;
             self.save()?;
-            println!("Created a new local CA 💥");
+            println!("{}", "Created a new local CA".green().bold());
         }
 
         Ok(())

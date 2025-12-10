@@ -7,6 +7,7 @@ use std::net::IpAddr;
 use std::path::PathBuf;
 use std::fs;
 use time::{OffsetDateTime, Duration};
+use colored::*;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -133,12 +134,12 @@ fn check_wildcard_warning(name: &str) {
     // Check for second-level wildcards (e.g., *.com, *.net)
     let second_level_wildcard_regex = Regex::new(r"(?i)^\*\.[0-9a-z_-]+$").unwrap();
     if second_level_wildcard_regex.is_match(name) {
-        eprintln!("Warning: many browsers don't support second-level wildcards like \"{}\"", name);
+        eprintln!("{} many browsers don't support second-level wildcards like \"{}\"", "Warning:".yellow().bold(), name);
     }
 
     // General wildcard reminder
     if name.starts_with("*.") {
-        eprintln!("Reminder: X.509 wildcards only go one level deep, so this won't match a.b.{}", &name[2..]);
+        eprintln!("{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), &name[2..]);
     }
 }
 
@@ -313,18 +314,18 @@ pub fn write_pkcs12_file(
 pub fn print_hosts(hosts: &[String]) {
     let second_level_wildcard_regex = Regex::new(r"(?i)^\*\.[0-9a-z_-]+$").unwrap();
 
-    println!("\nCreated a new certificate valid for the following names 📜");
+    println!("\n{}", "Created a new certificate valid for the following names".green().bold());
     for host in hosts {
-        println!(" - {:?}", host);
+        println!(" - {}", host.bright_white());
         if second_level_wildcard_regex.is_match(host) {
-            println!("   Warning: many browsers don't support second-level wildcards like {:?} ⚠️", host);
+            println!("   {} many browsers don't support second-level wildcards like {}", "Warning:".yellow().bold(), host);
         }
     }
 
     // Check for any wildcards and print reminder
     for host in hosts {
         if host.starts_with("*.") {
-            println!("\nReminder: X.509 wildcards only go one level deep, so this won't match a.b.{} ℹ️", &host[2..]);
+            println!("\n{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), &host[2..]);
             break;
         }
     }
@@ -696,18 +697,18 @@ fn generate_certificate_internal(
     // Print file paths
     if !config.pkcs12 {
         if cert_file == key_file {
-            println!("\nThe certificate and key are at {:?} ✅\n", cert_file);
+            println!("\n{} {:?}\n", "The certificate and key are at".green(), cert_file);
         } else {
-            println!("\nThe certificate is at {:?} and the key at {:?} ✅\n", cert_file, key_file);
+            println!("\n{} {:?} {} {:?}\n", "The certificate is at".green(), cert_file, "and the key at".green(), key_file);
         }
     } else {
-        println!("\nThe PKCS#12 bundle is at {:?} ✅", p12_file);
-        println!("\nThe legacy PKCS#12 encryption password is the often hardcoded default \"changeit\" ℹ️\n");
+        println!("\n{} {:?}", "The PKCS#12 bundle is at".green(), p12_file);
+        println!("\n{} The legacy PKCS#12 encryption password is the often hardcoded default \"changeit\"\n", "Info:".cyan());
     }
 
     // Print expiration date
     let expiration = OffsetDateTime::now_utc() + Duration::days(730 + 90);
-    println!("It will expire on {} 🗓\n", expiration.format(&time::format_description::well_known::Rfc2822)
+    println!("{} {}\n", "It will expire on".bright_white(), expiration.format(&time::format_description::well_known::Rfc2822)
         .unwrap_or_else(|_| format!("{}", expiration)));
 
     Ok(())
