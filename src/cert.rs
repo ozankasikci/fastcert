@@ -90,6 +90,17 @@ pub fn domain_to_unicode(domain: &str) -> String {
     idna::domain_to_unicode(domain).0
 }
 
+/// Generate a cryptographically secure random serial number for certificates
+pub fn generate_serial_number() -> [u8; 16] {
+    use ring::rand::{SystemRandom, SecureRandom};
+    let rng = SystemRandom::new();
+    let mut serial = [0u8; 16];
+    rng.fill(&mut serial).expect("Failed to generate random serial number");
+    // Ensure the serial number is positive by clearing the high bit
+    serial[0] &= 0x7F;
+    serial
+}
+
 fn generate_keypair(use_ecdsa: bool) -> Result<KeyPair> {
     let alg = if use_ecdsa {
         &PKCS_ECDSA_P256_SHA256
@@ -1035,5 +1046,16 @@ mod tests {
     fn test_idna_ascii_passthrough() {
         let ascii = domain_to_ascii("example.com").unwrap();
         assert_eq!(ascii, "example.com");
+    }
+
+    #[test]
+    fn test_generate_serial_number() {
+        let serial1 = generate_serial_number();
+        let serial2 = generate_serial_number();
+
+        assert_eq!(serial1.len(), 16);
+        assert_eq!(serial2.len(), 16);
+        assert_ne!(serial1, serial2, "Serial numbers should be unique");
+        assert_eq!(serial1[0] & 0x80, 0, "Serial number high bit should be clear");
     }
 }
