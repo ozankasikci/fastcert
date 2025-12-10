@@ -74,7 +74,7 @@ fn test_e2e_complete_workflow_rsa() {
 
     // Step 5: Verify certificate is signed by CA
     let verify_result = Command::new("openssl")
-        .args(&["verify", "-CAfile"])
+        .args(["verify", "-CAfile"])
         .arg(&ca_cert_path)
         .arg(&cert_file)
         .output()
@@ -169,7 +169,7 @@ fn test_e2e_complete_workflow_ecdsa() {
     // Verify ECDSA certificate is still signed by RSA CA
     let ca_cert_path = ca_path.join("rootCA.pem");
     let verify_result = Command::new("openssl")
-        .args(&["verify", "-CAfile"])
+        .args(["verify", "-CAfile"])
         .arg(&ca_cert_path)
         .arg(&cert_file)
         .output()
@@ -198,11 +198,9 @@ fn test_e2e_multiple_certificates_same_ca() {
     }
 
     // Generate multiple certificates with the same CA
-    let test_domains = vec![
-        vec!["app1.local".to_string()],
+    let test_domains = [vec!["app1.local".to_string()],
         vec!["app2.local".to_string()],
-        vec!["app3.local".to_string()],
-    ];
+        vec!["app3.local".to_string()]];
 
     let mut cert_paths = Vec::new();
 
@@ -228,7 +226,7 @@ fn test_e2e_multiple_certificates_same_ca() {
     let ca_cert_path = ca_path.join("rootCA.pem");
     for (i, cert_path) in cert_paths.iter().enumerate() {
         let verify_result = Command::new("openssl")
-            .args(&["verify", "-CAfile"])
+            .args(["verify", "-CAfile"])
             .arg(&ca_cert_path)
             .arg(cert_path)
             .output()
@@ -381,7 +379,7 @@ fn test_e2e_pkcs12_export() {
 
     // Verify PKCS12 file can be read by openssl
     let p12_info = Command::new("openssl")
-        .args(&["pkcs12", "-info", "-nokeys", "-nocerts", "-passin", "pass:"])
+        .args(["pkcs12", "-info", "-nokeys", "-nocerts", "-passin", "pass:"])
         .arg("-in")
         .arg(&p12_file)
         .output();
@@ -766,7 +764,7 @@ fn test_scenario_certificate_renewal() {
     // But still valid and signed by same CA
     let ca_cert = temp_dir.path().join("rootCA.pem");
     let verify_result = Command::new("openssl")
-        .args(&["verify", "-CAfile"])
+        .args(["verify", "-CAfile"])
         .arg(&ca_cert)
         .arg(&cert_file)
         .output()
@@ -899,7 +897,7 @@ fn test_scenario_multiple_environments() {
     let dev_cert = temp_dir.path().join("dev.pem");
     let dev_key = temp_dir.path().join("dev-key.pem");
     fastcert::cert::generate_certificate(
-        &vec!["dev.myapp.local".to_string(), "localhost".to_string()],
+        &["dev.myapp.local".to_string(), "localhost".to_string()],
         Some(dev_cert.to_str().unwrap()),
         Some(dev_key.to_str().unwrap()),
         None,
@@ -913,7 +911,7 @@ fn test_scenario_multiple_environments() {
     let staging_cert = temp_dir.path().join("staging.pem");
     let staging_key = temp_dir.path().join("staging-key.pem");
     fastcert::cert::generate_certificate(
-        &vec!["staging.myapp.local".to_string(), "localhost".to_string()],
+        &["staging.myapp.local".to_string(), "localhost".to_string()],
         Some(staging_cert.to_str().unwrap()),
         Some(staging_key.to_str().unwrap()),
         None,
@@ -927,7 +925,7 @@ fn test_scenario_multiple_environments() {
     let prod_cert = temp_dir.path().join("prod.pem");
     let prod_key = temp_dir.path().join("prod-key.pem");
     fastcert::cert::generate_certificate(
-        &vec!["prod.myapp.local".to_string(), "localhost".to_string()],
+        &["prod.myapp.local".to_string(), "localhost".to_string()],
         Some(prod_cert.to_str().unwrap()),
         Some(prod_key.to_str().unwrap()),
         None,
@@ -942,7 +940,7 @@ fn test_scenario_multiple_environments() {
 
     for cert in &[&dev_cert, &staging_cert, &prod_cert] {
         let verify_result = Command::new("openssl")
-            .args(&["verify", "-CAfile"])
+            .args(["verify", "-CAfile"])
             .arg(&ca_cert)
             .arg(cert)
             .output()

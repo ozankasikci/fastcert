@@ -89,7 +89,7 @@ fn test_security_certificate_not_self_signed() {
     // Read certificate and verify it's signed by CA
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-issuer", "-subject"])
+        .args(["x509", "-noout", "-issuer", "-subject"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -140,7 +140,7 @@ fn test_security_unique_serial_numbers() {
         // Get serial number
         use std::process::Command;
         let output = Command::new("openssl")
-            .args(&["x509", "-noout", "-serial"])
+            .args(["x509", "-noout", "-serial"])
             .arg("-in")
             .arg(&cert_file)
             .output()
@@ -198,7 +198,7 @@ fn test_security_ca_certificate_validity() {
     use std::process::Command;
     let ca_cert = temp_dir.path().join("rootCA.pem");
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-text"])
+        .args(["x509", "-noout", "-text"])
         .arg("-in")
         .arg(&ca_cert)
         .output()
@@ -291,7 +291,7 @@ fn test_certificate_expiration_date() {
     // Verify certificate validity period
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-dates"])
+        .args(["x509", "-noout", "-dates"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -311,7 +311,7 @@ fn test_certificate_expiration_date() {
 
     // Verify it's currently valid
     let verify_output = Command::new("openssl")
-        .args(&["x509", "-noout", "-checkend", "0"])
+        .args(["x509", "-noout", "-checkend", "0"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -354,7 +354,7 @@ fn test_certificate_key_usage() {
 
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-text"])
+        .args(["x509", "-noout", "-text"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -400,7 +400,7 @@ fn test_client_certificate_key_usage() {
 
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-text"])
+        .args(["x509", "-noout", "-text"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -453,7 +453,7 @@ fn test_san_types_validation() {
     // Verify all SANs are present
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-text"])
+        .args(["x509", "-noout", "-text"])
         .arg("-in")
         .arg(&cert_file)
         .output()

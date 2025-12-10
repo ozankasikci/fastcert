@@ -31,7 +31,7 @@ pub fn run_openssl(args: &[&str]) -> Result<String, String> {
 /// Verify certificate is signed by CA using openssl
 pub fn verify_cert_with_ca(cert_path: &std::path::Path, ca_cert_path: &std::path::Path) -> bool {
     let output = Command::new("openssl")
-        .args(&["verify", "-CAfile"])
+        .args(["verify", "-CAfile"])
         .arg(ca_cert_path)
         .arg(cert_path)
         .output();

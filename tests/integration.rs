@@ -39,7 +39,7 @@ fn test_certificate_is_signed_by_ca() {
 
     // Get certificate issuer
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-issuer"])
+        .args(["x509", "-noout", "-issuer"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -48,7 +48,7 @@ fn test_certificate_is_signed_by_ca() {
 
     // Get CA subject
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-subject"])
+        .args(["x509", "-noout", "-subject"])
         .arg("-in")
         .arg(ca_path.join("rootCA.pem"))
         .output()
@@ -76,7 +76,7 @@ fn test_certificate_is_signed_by_ca() {
 
     // Verify certificate chain
     let output = Command::new("openssl")
-        .args(&["verify", "-CAfile"])
+        .args(["verify", "-CAfile"])
         .arg(ca_path.join("rootCA.pem"))
         .arg(&cert_file)
         .output()
@@ -137,7 +137,7 @@ fn test_certificate_contains_correct_sans() {
     // Verify SANs using openssl
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["x509", "-noout", "-text"])
+        .args(["x509", "-noout", "-text"])
         .arg("-in")
         .arg(&cert_file)
         .output()
@@ -199,7 +199,7 @@ fn test_ca_uses_rsa_3072() {
     // Check CA key size using openssl
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["rsa", "-noout", "-text"])
+        .args(["rsa", "-noout", "-text"])
         .arg("-in")
         .arg(ca_path.join("rootCA-key.pem"))
         .output()
@@ -250,7 +250,7 @@ fn test_certificate_uses_rsa_2048_by_default() {
     // Check certificate key size using openssl
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["rsa", "-noout", "-text"])
+        .args(["rsa", "-noout", "-text"])
         .arg("-in")
         .arg(&key_file)
         .output()
@@ -301,7 +301,7 @@ fn test_certificate_uses_ecdsa_p256_with_flag() {
     // Check certificate key type using openssl
     use std::process::Command;
     let output = Command::new("openssl")
-        .args(&["ec", "-noout", "-text"])
+        .args(["ec", "-noout", "-text"])
         .arg("-in")
         .arg(&key_file)
         .output()
