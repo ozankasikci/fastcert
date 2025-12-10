@@ -929,22 +929,68 @@ fn copy_subject_to_params(
 }
 
 /// Load CA certificate for signing (internal helper)
-fn load_ca_cert_for_signing(_cert_pem: &str, key_pem: &str) -> Result<rcgen::Certificate> {
+fn load_ca_cert_for_signing(cert_pem: &str, key_pem: &str) -> Result<rcgen::Certificate> {
+    use rcgen::{DistinguishedName, DnType};
+    use x509_parser::prelude::*;
+
     // Parse the PEM-encoded private key
-    let _key_pair = KeyPair::from_pem(key_pem)
+    let key_pair = KeyPair::from_pem(key_pem)
         .map_err(|e| Error::Certificate(format!("Failed to parse CA key: {}", e)))?;
 
-    // Create CA certificate params with the loaded key
+    // Parse the CA certificate to get its parameters
+    let (_, pem) = x509_parser::pem::parse_x509_pem(cert_pem.as_bytes())
+        .map_err(|e| Error::Certificate(format!("Failed to parse CA cert PEM: {}", e)))?;
+
+    let ca_x509 = pem.parse_x509()
+        .map_err(|e| Error::Certificate(format!("Failed to parse CA cert X509: {}", e)))?;
+
+    // Create CA certificate params matching the loaded certificate
     let mut params = CertificateParams::default();
     params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
     params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
 
-    // Set validity period (10 years like the CA)
-    let now = OffsetDateTime::now_utc();
-    params.not_before = now;
-    params.not_after = now + Duration::days(3650);
+    // Extract subject from the CA certificate
+    let mut dn = DistinguishedName::new();
+    for rdn in ca_x509.subject().iter() {
+        for attr in rdn.iter() {
+            let value = attr.attr_value().as_str()
+                .map_err(|e| Error::Certificate(format!("Failed to parse DN value: {}", e)))?;
 
-    // Create certificate from params and key pair
+            // Match OID for different DN components
+            let oid_str = attr.attr_type().to_id_string();
+            if oid_str == "2.5.4.3" {
+                // Common Name
+                dn.push(DnType::CommonName, value);
+            } else if oid_str == "2.5.4.10" {
+                // Organization
+                dn.push(DnType::OrganizationName, value);
+            } else if oid_str == "2.5.4.11" {
+                // Organizational Unit
+                dn.push(DnType::OrganizationalUnitName, value);
+            }
+        }
+    }
+    params.distinguished_name = dn;
+
+    // Set validity period from the CA certificate
+    let validity = ca_x509.validity();
+    params.not_before = OffsetDateTime::from_unix_timestamp(validity.not_before.timestamp())
+        .unwrap_or_else(|_| OffsetDateTime::now_utc());
+    params.not_after = OffsetDateTime::from_unix_timestamp(validity.not_after.timestamp())
+        .unwrap_or_else(|_| OffsetDateTime::now_utc() + Duration::days(3650));
+
+    // Set serial number
+    let serial_bytes = ca_x509.serial.to_bytes_be();
+    params.serial_number = Some(rcgen::SerialNumber::from_slice(&serial_bytes));
+
+    // Set the key pair BEFORE creating the certificate
+    params.key_pair = Some(key_pair);
+
+    // Determine algorithm from the key pair
+    // ECDSA is the default, which should work
+    params.alg = &PKCS_ECDSA_P256_SHA256;
+
+    // Create certificate from params with the loaded key pair
     let cert = rcgen::Certificate::from_params(params)
         .map_err(|e| Error::Certificate(format!("Failed to create CA cert for signing: {}", e)))?;
 
