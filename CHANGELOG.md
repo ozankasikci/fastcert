@@ -127,7 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Version 0.1.0
 
-This is the first functional release of rscert, a Rust implementation of mkcert for creating locally-trusted development certificates.
+This is the first functional release of fastcert, a Rust implementation of mkcert for creating locally-trusted development certificates.
 
 **Highlights:**
 - Full feature parity with mkcert for common use cases
@@ -143,10 +143,10 @@ cargo install --path .
 **Quick Start:**
 ```bash
 # Install CA
-rscert -install
+fastcert -install
 
 # Generate certificate
-rscert example.com localhost 127.0.0.1
+fastcert example.com localhost 127.0.0.1
 ```
 
 **Known Limitations:**
@@ -162,6 +162,6 @@ rscert example.com localhost 127.0.0.1
 
 ---
 
-[Unreleased]: https://github.com/yourusername/rscert/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/yourusername/rscert/releases/tag/v0.1.0
-[0.0.1]: https://github.com/yourusername/rscert/releases/tag/v0.0.1
+[Unreleased]: https://github.com/yourusername/fastcert/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/yourusername/fastcert/releases/tag/v0.1.0
+[0.0.1]: https://github.com/yourusername/fastcert/releases/tag/v0.0.1

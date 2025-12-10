@@ -10,9 +10,9 @@ We release patches for security vulnerabilities for the following versions:
 
 ## Security Context
 
-**Important:** rscert is designed for local development use only. It is **NOT** intended for production environments.
+**Important:** fastcert is designed for local development use only. It is **NOT** intended for production environments.
 
-### What rscert Does
+### What fastcert Does
 
 - Creates a local Certificate Authority (CA) on your machine
 - Generates SSL/TLS certificates signed by that local CA
@@ -21,7 +21,7 @@ We release patches for security vulnerabilities for the following versions:
 
 ### Security Considerations
 
-1. **Local Development Only**: Never use rscert for production services
+1. **Local Development Only**: Never use fastcert for production services
 2. **CA Key Storage**: The CA private key is stored unencrypted on your local filesystem
 3. **Trust Scope**: Anyone with access to your CA key can create certificates trusted by your system
 4. **No Revocation**: Certificate revocation is not supported
@@ -71,10 +71,10 @@ If you discover a security vulnerability, please report it by emailing security@
 1. **Protect Your CA Key**
    ```bash
    # Check CA location
-   rscert -CAROOT
+   fastcert -CAROOT
 
    # Ensure proper permissions (Unix/macOS)
-   chmod 600 $(rscert -CAROOT)/rootCA-key.pem
+   chmod 600 $(fastcert -CAROOT)/rootCA-key.pem
    ```
 
 2. **Don't Share Your CA**
@@ -86,8 +86,8 @@ If you discover a security vulnerability, please report it by emailing security@
    - Only install the CA on machines you control
    - Uninstall when no longer needed:
      ```bash
-     rscert -uninstall
-     rm -rf $(rscert -CAROOT)
+     fastcert -uninstall
+     rm -rf $(fastcert -CAROOT)
      ```
 
 4. **Regular Rotation**
@@ -125,8 +125,8 @@ If you discover a security vulnerability, please report it by emailing security@
 ### CA Key Storage
 
 The CA private key is stored unencrypted in:
-- macOS/Linux: `$HOME/.local/share/rscert`
-- Windows: `%LOCALAPPDATA%\rscert`
+- macOS/Linux: `$HOME/.local/share/fastcert`
+- Windows: `%LOCALAPPDATA%\fastcert`
 
 This is intentional for ease of use in development. For production use, a proper PKI solution with HSM support should be used.
 
@@ -167,22 +167,22 @@ If the CA key is compromised:
 
 1. **Immediately Uninstall**
    ```bash
-   rscert -uninstall
+   fastcert -uninstall
    ```
 
 2. **Delete CA Files**
    ```bash
-   rm -rf $(rscert -CAROOT)
+   rm -rf $(fastcert -CAROOT)
    ```
 
 3. **Create New CA**
    ```bash
-   rscert -install
+   fastcert -install
    ```
 
 4. **Regenerate All Certificates**
    ```bash
-   rscert your-domains-here
+   fastcert your-domains-here
    ```
 
 5. **Review System**
