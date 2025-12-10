@@ -21,14 +21,17 @@ TEMP_DIR=$(mktemp -d)
 
 # macOS Intel (x86_64)
 MACOS_INTEL_URL="https://github.com/ozankasikci/fastcert/releases/download/v${VERSION}/fastcert-x86_64-apple-darwin.tar.gz"
+echo "  Downloading macOS Intel..."
 curl -sL "$MACOS_INTEL_URL" -o "$TEMP_DIR/macos-intel.tar.gz"
 
 # macOS Apple Silicon (aarch64)
 MACOS_ARM_URL="https://github.com/ozankasikci/fastcert/releases/download/v${VERSION}/fastcert-aarch64-apple-darwin.tar.gz"
+echo "  Downloading macOS ARM..."
 curl -sL "$MACOS_ARM_URL" -o "$TEMP_DIR/macos-arm.tar.gz"
 
 # Linux x86_64
 LINUX_URL="https://github.com/ozankasikci/fastcert/releases/download/v${VERSION}/fastcert-x86_64-unknown-linux-gnu.tar.gz"
+echo "  Downloading Linux x86_64..."
 curl -sL "$LINUX_URL" -o "$TEMP_DIR/linux.tar.gz"
 
 echo "🔐 Calculating SHA256..."
@@ -48,9 +51,9 @@ fi
 
 rm -rf "$TEMP_DIR"
 
-echo "✅ macOS Intel SHA256: $MACOS_INTEL_SHA256"
-echo "✅ macOS ARM SHA256: $MACOS_ARM_SHA256"
-echo "✅ Linux SHA256: $LINUX_SHA256"
+echo "  ✓ macOS Intel SHA256: $MACOS_INTEL_SHA256"
+echo "  ✓ macOS ARM SHA256: $MACOS_ARM_SHA256"
+echo "  ✓ Linux SHA256: $LINUX_SHA256"
 
 # Create homebrew directory if it doesn't exist
 mkdir -p homebrew
