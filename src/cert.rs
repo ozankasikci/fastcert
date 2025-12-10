@@ -418,6 +418,22 @@ pub(crate) fn set_file_permissions(_path: &PathBuf, _mode: u32) -> Result<()> {
     Ok(())
 }
 
+/// Verify file permissions (Unix only)
+#[cfg(unix)]
+pub fn verify_file_permissions(path: &PathBuf, expected_mode: u32) -> Result<bool> {
+    let metadata = fs::metadata(path)
+        .map_err(|e| Error::Io(e))?;
+    let permissions = metadata.permissions();
+    let actual_mode = permissions.mode() & 0o777;
+    Ok(actual_mode == expected_mode)
+}
+
+#[cfg(not(unix))]
+pub fn verify_file_permissions(_path: &PathBuf, _expected_mode: u32) -> Result<bool> {
+    // On Windows, skip permission verification
+    Ok(true)
+}
+
 /// Write PKCS#12 file with certificate, key, and CA cert
 /// Uses the default password "changeit" as per mkcert behavior
 pub fn write_pkcs12_file(
@@ -1339,5 +1355,32 @@ mod tests {
         // Already expired
         let past = now - Duration::days(1);
         assert!(!is_cert_expiring_soon(past));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_file_permission_verification() {
+        use tempfile::TempDir;
+        use std::fs::File;
+
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test_file.txt");
+
+        // Create a file
+        File::create(&file_path).unwrap();
+
+        // Set permissions to 0644
+        set_file_permissions(&file_path, 0o644).unwrap();
+
+        // Verify permissions
+        assert!(verify_file_permissions(&file_path, 0o644).unwrap());
+        assert!(!verify_file_permissions(&file_path, 0o600).unwrap());
+
+        // Change permissions to 0600
+        set_file_permissions(&file_path, 0o600).unwrap();
+
+        // Verify new permissions
+        assert!(verify_file_permissions(&file_path, 0o600).unwrap());
+        assert!(!verify_file_permissions(&file_path, 0o644).unwrap());
     }
 }
