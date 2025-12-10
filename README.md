@@ -33,7 +33,7 @@ fastcert is a command-line tool that makes it easy to create and manage locally-
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/ozankasikci/fastcert
 cd fastcert
 ```
 
