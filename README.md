@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/fastcert.svg)](https://crates.io/crates/fastcert)
 [![Homebrew](https://img.shields.io/badge/homebrew-ozankasikci%2Ftap-orange.svg)](https://github.com/ozankasikci/homebrew-tap)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen.svg)](#testing)
 [![Coverage](assets/coverage.svg)](#testing)
@@ -583,7 +583,7 @@ This project was inspired by [mkcert](https://github.com/FiloSottile/mkcert).
 
 ## License
 
-MIT License - see LICENSE file for details
+BSD 3-Clause License - see LICENSE file for details
 
 ## Status
 
