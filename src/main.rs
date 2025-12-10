@@ -78,7 +78,7 @@ struct Cli {
     #[arg(long)]
     client: bool,
 
-    /// Generate a certificate with an ECDSA key
+    /// Generate a certificate with an ECDSA key (default: RSA-2048)
     #[arg(long)]
     ecdsa: bool,
 

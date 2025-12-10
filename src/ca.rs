@@ -2,7 +2,7 @@
 
 use crate::{Error, Result};
 use colored::*;
-use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa};
+use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa, KeyPair, RsaKeySize};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -213,6 +213,8 @@ pub struct CertificateAuthority {
     cert: Option<Certificate>,
     /// PEM-encoded CA certificate
     cert_pem: Option<String>,
+    /// PEM-encoded CA private key
+    key_pem: Option<String>,
 }
 
 impl CertificateAuthority {
@@ -230,6 +232,7 @@ impl CertificateAuthority {
             root_path,
             cert: None,
             cert_pem: None,
+            key_pem: None,
         }
     }
 
@@ -294,7 +297,7 @@ impl CertificateAuthority {
 
     /// Create a new CA certificate and key pair.
     ///
-    /// Generates a new 2048-bit RSA key pair and creates a self-signed
+    /// Generates a new 3072-bit RSA key pair and creates a self-signed
     /// CA certificate valid for 10 years. The certificate includes:
     /// - Subject: `mkcert <user>@<hostname>`
     /// - Basic Constraints: CA=true
@@ -309,18 +312,24 @@ impl CertificateAuthority {
     /// Returns an error if certificate generation or serialization fails.
     pub fn create_ca(&mut self) -> Result<()> {
         eprintln!("{}", "Generating CA certificate...".cyan());
+
+        // Generate RSA-3072 key pair for the CA
+        let key_pair = KeyPair::generate_rsa_for(&rcgen::PKCS_RSA_SHA256, RsaKeySize::_3072)
+            .map_err(|e| Error::Certificate(format!("Failed to generate CA key pair: {}", e)))?;
+
         let params = create_ca_params()
             .map_err(|e| Error::Certificate(format!("Failed to create CA parameters: {}", e)))?;
 
-        let cert = Certificate::from_params(params)
+        // Create self-signed CA certificate
+        let cert = params.self_signed(&key_pair)
             .map_err(|e| Error::Certificate(format!("Failed to generate CA certificate: {}", e)))?;
 
-        let cert_pem = cert.serialize_pem().map_err(|e| {
-            Error::Certificate(format!("Failed to serialize CA certificate to PEM: {}", e))
-        })?;
+        let cert_pem = cert.pem();
+        let key_pem = key_pair.serialize_pem();
 
         self.cert = Some(cert);
         self.cert_pem = Some(cert_pem);
+        self.key_pem = Some(key_pem);
 
         Ok(())
     }
@@ -347,10 +356,10 @@ impl CertificateAuthority {
             .as_ref()
             .ok_or_else(|| Error::Certificate("No certificate available to save".to_string()))?;
 
-        let cert = self
-            .cert
+        let key_pem = self
+            .key_pem
             .as_ref()
-            .ok_or_else(|| Error::Certificate("No certificate available to save".to_string()))?;
+            .ok_or_else(|| Error::Certificate("No private key available to save".to_string()))?;
 
         // Save certificate
         let cert_path = self.cert_path();
@@ -375,7 +384,6 @@ impl CertificateAuthority {
         })?;
 
         // Save private key
-        let key_pem = cert.serialize_private_key_pem();
         let key_path = self.key_path();
         let mut file = File::create(&key_path).map_err(|e| {
             Error::Certificate(format!(
@@ -397,10 +405,9 @@ impl CertificateAuthority {
         Ok(())
     }
 
-    /// Load an existing CA certificate from disk.
+    /// Load an existing CA certificate and private key from disk.
     ///
-    /// Reads the CA certificate PEM file and stores it in memory.
-    /// Does not load the private key.
+    /// Reads the CA certificate and private key PEM files and stores them in memory.
     ///
     /// # Returns
     ///
@@ -409,19 +416,24 @@ impl CertificateAuthority {
     /// # Errors
     ///
     /// Returns an error if:
-    /// - The certificate file doesn't exist
-    /// - The file cannot be read
+    /// - The certificate or key file doesn't exist
+    /// - The files cannot be read
     pub fn load(&mut self) -> Result<()> {
         let cert_path = self.cert_path();
         if !cert_path.exists() {
             return Err(Error::Certificate("CA certificate not found".to_string()));
         }
 
-        let cert_pem = fs::read_to_string(&cert_path)?;
-        self.cert_pem = Some(cert_pem.clone());
+        let key_path = self.key_path();
+        if !key_path.exists() {
+            return Err(Error::Certificate("CA private key not found".to_string()));
+        }
 
-        // Parse certificate for later use
-        // Note: rcgen doesn't support loading certs, we'll store PEM for now
+        let cert_pem = fs::read_to_string(&cert_path)?;
+        let key_pem = fs::read_to_string(&key_path)?;
+
+        self.cert_pem = Some(cert_pem);
+        self.key_pem = Some(key_pem);
 
         Ok(())
     }
