@@ -1,6 +1,6 @@
-# Contributing to rscert
+# Contributing to fastcert
 
-Thank you for considering contributing to rscert! This document provides guidelines and instructions for contributing.
+Thank you for considering contributing to fastcert! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
@@ -15,7 +15,7 @@ Before creating bug reports, please check existing issues to avoid duplicates. W
 - A clear and descriptive title
 - Exact steps to reproduce the problem
 - Expected behavior vs actual behavior
-- Your environment (OS, Rust version, rscert version)
+- Your environment (OS, Rust version, fastcert version)
 - Any relevant error messages or logs
 
 ### Suggesting Enhancements
@@ -48,8 +48,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 ### Building from Source
 
 ```bash
-git clone https://github.com/yourusername/rscert.git
-cd rscert
+git clone https://github.com/yourusername/fastcert.git
+cd fastcert
 cargo build
 ```
 
@@ -104,7 +104,7 @@ Avoid:
 ## Project Structure
 
 ```
-rscert/
+fastcert/
 ├── src/
 │   ├── main.rs          # CLI entry point
 │   ├── lib.rs           # Library exports
@@ -147,7 +147,7 @@ mod tests {
 Add integration tests in the `tests/` directory:
 
 ```rust
-use rscert;
+use fastcert;
 
 #[test]
 fn test_full_workflow() {
@@ -187,7 +187,7 @@ Example:
 /// # Examples
 ///
 /// ```
-/// use rscert::cert::generate_certificate;
+/// use fastcert::cert::generate_certificate;
 ///
 /// generate_certificate(&["example.com"], None, None, None, false, false, false)?;
 /// ```
