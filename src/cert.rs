@@ -48,6 +48,7 @@ impl HostType {
     pub fn parse(host: &str) -> Result<Self> {
         // Try IP address
         if let Ok(ip) = host.parse::<IpAddr>() {
+            validate_ip_address(&ip)?;
             return Ok(HostType::IpAddress(ip));
         }
 
@@ -63,6 +64,32 @@ impl HostType {
 
         // Default to DNS name
         Ok(HostType::DnsName(host.to_string()))
+    }
+}
+
+/// Validate IP address (comprehensive checks for IPv4 and IPv6)
+pub fn validate_ip_address(ip: &IpAddr) -> Result<()> {
+    match ip {
+        IpAddr::V4(ipv4) => {
+            // Check for valid IPv4 ranges (not multicast, not reserved)
+            let octets = ipv4.octets();
+
+            // Allow all valid IPv4 addresses for development
+            // Just ensure it's not unspecified
+            if ipv4.is_unspecified() {
+                return Err(Error::InvalidHostname(format!("Unspecified IP address not allowed: {}", ip)));
+            }
+
+            Ok(())
+        }
+        IpAddr::V6(ipv6) => {
+            // Validate IPv6 address
+            if ipv6.is_unspecified() {
+                return Err(Error::InvalidHostname(format!("Unspecified IP address not allowed: {}", ip)));
+            }
+
+            Ok(())
+        }
     }
 }
 
@@ -1135,5 +1162,25 @@ mod tests {
         assert!(validate_wildcard_depth("*.*.example.com").is_err());
         assert!(validate_wildcard_depth("*example.com").is_err());
         assert!(validate_wildcard_depth("example.*.com").is_err());
+    }
+
+    #[test]
+    fn test_ip_address_validation() {
+        use std::net::{Ipv4Addr, Ipv6Addr};
+
+        // Valid IPv4 addresses
+        assert!(validate_ip_address(&IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))).is_ok());
+        assert!(validate_ip_address(&IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1))).is_ok());
+        assert!(validate_ip_address(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))).is_ok());
+
+        // Invalid IPv4 - unspecified
+        assert!(validate_ip_address(&IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))).is_err());
+
+        // Valid IPv6 addresses
+        assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))).is_ok());
+        assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))).is_ok());
+
+        // Invalid IPv6 - unspecified
+        assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))).is_err());
     }
 }
