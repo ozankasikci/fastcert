@@ -21,17 +21,63 @@ rscert is a command-line tool that makes it easy to create and manage locally-tr
 
 ## Installation
 
+### From Source
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/rscert.git
+cd rscert
+```
+
+2. Build and install:
 ```bash
 cargo install --path .
 ```
 
-Or build from source:
+This will install the `rscert` binary to your cargo bin directory (usually `~/.cargo/bin`).
+
+### Build from Source
+
+For development or custom builds:
 
 ```bash
-git clone https://github.com/yourusername/rscert.git
-cd rscert
+# Debug build
+cargo build
+
+# Release build (optimized)
 cargo build --release
+
+# The binary will be in target/release/rscert
 ```
+
+### Prerequisites
+
+- Rust 1.70 or later
+- Cargo package manager
+- Administrator/root privileges for installing CA certificates
+
+### Platform-Specific Requirements
+
+**macOS:**
+- No additional dependencies required
+- System trust store integration works out of the box
+
+**Linux:**
+- For Firefox/Chrome support: `certutil` (NSS tools)
+  ```bash
+  # Debian/Ubuntu
+  sudo apt install libnss3-tools
+
+  # Fedora/RHEL
+  sudo dnf install nss-tools
+
+  # Arch Linux
+  sudo pacman -S nss
+  ```
+
+**Windows:**
+- Administrator privileges required for system trust store installation
+- No additional dependencies needed
 
 ## Quick Start
 
