@@ -415,6 +415,85 @@ rscert --verbose example.com
 rscert --debug -install
 ```
 
+## FAQ
+
+### Is this secure for production use?
+
+**No.** rscert is designed for development and testing only. Never use these certificates in production environments. The CA key is stored locally without additional protection, making it unsuitable for production use.
+
+### How is this different from mkcert?
+
+rscert is a Rust implementation inspired by mkcert. The main differences:
+- Written in Rust instead of Go
+- Similar command-line interface and behavior
+- Cross-platform support for macOS, Linux, and Windows
+- Automatic trust store integration
+
+### Can I use this for internal services?
+
+While technically possible, it's not recommended. For internal services, consider using a proper internal PKI solution. rscert is best suited for local development.
+
+### Why does my browser still show a warning?
+
+Make sure:
+1. You ran `rscert -install` before generating certificates
+2. The certificate includes the exact domain/IP you're accessing
+3. You've restarted your browser after installation
+4. The certificate hasn't expired
+
+### Can I trust certificates on another machine?
+
+Yes, but it's not recommended. You would need to copy the CA certificate to the other machine and install it manually. This defeats the purpose of a local CA and creates security risks.
+
+### What happens if I lose my CA key?
+
+If you lose the CA key, you cannot generate new trusted certificates. You'll need to:
+1. Run `rscert -uninstall` on all machines that trust the old CA
+2. Delete the CAROOT directory
+3. Run `rscert -install` to create a new CA
+4. Regenerate all certificates
+
+### How long are certificates valid?
+
+Certificates are valid for 825 days from creation. This is the maximum validity period accepted by major browsers and operating systems.
+
+### Can I use custom validity periods?
+
+Currently, no. The validity period is fixed at 825 days to ensure browser compatibility.
+
+### Does this work with Docker?
+
+Yes. You can mount the CA certificate into Docker containers and configure them to trust it. However, it's usually easier to use the container's hostname and generate a certificate for it.
+
+### Can I automate certificate generation?
+
+Yes. rscert is designed to be scriptable. Example:
+```bash
+#!/bin/bash
+rscert -install
+for domain in app.local api.local db.local; do
+    rscert "$domain"
+done
+```
+
+### Does this support IPv6?
+
+Yes. You can generate certificates for IPv6 addresses:
+```bash
+rscert ::1 2001:db8::1
+```
+
+### Can I revoke certificates?
+
+No. Certificate revocation is not supported. If you need to invalidate a certificate, simply delete it and don't use it anymore.
+
+### What's the difference between RSA and ECDSA?
+
+- **RSA**: Older, widely supported, larger keys (2048 bits)
+- **ECDSA**: Newer, smaller keys (256 bits), faster, same security level
+
+For modern browsers and applications, ECDSA is recommended.
+
 ## Security
 
 The CA key is the most sensitive file. Keep it secure and never share it. If you suspect it has been compromised, you should uninstall the CA and delete the CAROOT directory.
@@ -425,6 +504,7 @@ The CA key is the most sensitive file. Keep it secure and never share it. If you
 - Use different CAs for different trust boundaries
 - Regularly rotate certificates (regenerate every few months)
 - Keep the CA key file permissions restricted (600)
+- Only use for local development, never production
 
 ## License
 
