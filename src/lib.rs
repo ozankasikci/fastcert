@@ -331,16 +331,11 @@ mod tests {
     }
 
     #[test]
-    fn test_output_format_clone() {
-        let format1 = OutputFormat::Yaml;
-        let format2 = format1.clone();
-        assert_eq!(format1, format2);
-    }
-
-    #[test]
     fn test_output_format_copy() {
-        let format1 = OutputFormat::Json;
-        let format2 = format1;
+        let format1 = OutputFormat::Yaml;
+        let format2 = format1; // Copy trait automatically copies
         assert_eq!(format1, format2);
+        // Verify format1 is still usable after "move" (because of Copy)
+        assert_eq!(format1, OutputFormat::Yaml);
     }
 }
