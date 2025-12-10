@@ -302,7 +302,7 @@ impl CertificateAuthority {
     ///
     /// Generates a new 3072-bit RSA key pair and creates a self-signed
     /// CA certificate valid for 10 years. The certificate includes:
-    /// - Subject: `mkcert <user>@<hostname>`
+    /// - Subject: `fastcert <user>@<hostname>`
     /// - Basic Constraints: CA=true
     /// - Key Usage: Certificate Sign, CRL Sign
     ///
@@ -475,7 +475,7 @@ impl CertificateAuthority {
 
     /// Get a unique name for the CA certificate for use in trust stores.
     ///
-    /// Generates a name like "mkcert development CA <serial>" where
+    /// Generates a name like "fastcert development CA <serial>" where
     /// <serial> is the certificate's serial number. This ensures the
     /// CA can be uniquely identified in system trust stores.
     ///
@@ -503,7 +503,7 @@ impl CertificateAuthority {
             .1;
 
         let serial = cert.serial.to_str_radix(10);
-        Ok(format!("mkcert development CA {}", serial))
+        Ok(format!("fastcert development CA {}", serial))
     }
 
     /// Get the serial number of the CA certificate.
@@ -585,7 +585,7 @@ fn get_user_and_hostname() -> String {
 /// Create certificate parameters for a new CA certificate.
 ///
 /// Generates parameters for a self-signed CA certificate with:
-/// - Subject: mkcert development CA / user@hostname / mkcert user@hostname
+/// - Subject: fastcert development CA / user@hostname / fastcert user@hostname
 /// - Validity: 10 years from now
 /// - Basic Constraints: CA=true (unconstrained)
 /// - Key Usage: Certificate Sign, CRL Sign
@@ -603,9 +603,9 @@ fn create_ca_params() -> Result<CertificateParams> {
     let mut params = CertificateParams::default();
 
     let mut dn = DistinguishedName::new();
-    dn.push(DnType::OrganizationName, "mkcert development CA");
+    dn.push(DnType::OrganizationName, "fastcert development CA");
     dn.push(DnType::OrganizationalUnitName, &user_host);
-    dn.push(DnType::CommonName, format!("mkcert {}", user_host));
+    dn.push(DnType::CommonName, format!("fastcert {}", user_host));
     params.distinguished_name = dn;
 
     // Valid for 10 years

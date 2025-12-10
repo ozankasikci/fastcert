@@ -127,10 +127,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Version 0.1.0
 
-This is the first functional release of fastcert, a Rust implementation of mkcert for creating locally-trusted development certificates.
+This is the first functional release of fastcert for creating locally-trusted development certificates.
 
 **Highlights:**
-- Full feature parity with mkcert for common use cases
+- Cross-platform certificate generation with zero configuration
 - Cross-platform support (macOS, Linux, Windows)
 - Easy installation and usage
 - Comprehensive documentation

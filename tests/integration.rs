@@ -65,8 +65,8 @@ fn test_certificate_is_signed_by_ca() {
 
     // Extract the CN from both
     assert!(
-        cert_issuer.contains("mkcert"),
-        "Certificate should be signed by mkcert CA, got: {}",
+        cert_issuer.contains("fastcert"),
+        "Certificate should be signed by fastcert CA, got: {}",
         cert_issuer
     );
     assert!(

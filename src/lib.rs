@@ -1,6 +1,4 @@
 //! fastcert - A tool for creating locally-trusted development certificates
-//!
-//! This is a Rust implementation of mkcert.
 
 pub mod ca;
 pub mod cert;

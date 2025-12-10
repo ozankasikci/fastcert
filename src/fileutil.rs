@@ -12,24 +12,24 @@ pub fn get_ca_root() -> Result<PathBuf> {
     #[cfg(target_os = "macos")]
     {
         if let Some(home) = dirs::home_dir() {
-            return Ok(home.join("Library/Application Support/mkcert"));
+            return Ok(home.join("Library/Application Support/fastcert"));
         }
     }
 
     #[cfg(target_os = "windows")]
     {
         if let Some(local_app_data) = dirs::data_local_dir() {
-            return Ok(local_app_data.join("mkcert"));
+            return Ok(local_app_data.join("fastcert"));
         }
     }
 
     #[cfg(target_os = "linux")]
     {
         if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
-            return Ok(PathBuf::from(xdg).join("mkcert"));
+            return Ok(PathBuf::from(xdg).join("fastcert"));
         }
         if let Some(home) = dirs::home_dir() {
-            return Ok(home.join(".local/share/mkcert"));
+            return Ok(home.join(".local/share/fastcert"));
         }
     }
 

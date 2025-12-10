@@ -159,7 +159,7 @@ impl TrustStore for LinuxTrustStore {
         let cert_content = std::fs::read(&self.cert_path)
             .map_err(|e| Error::TrustStore(format!("Failed to read certificate: {}", e)))?;
 
-        // Copy certificate to system trust store using tee (similar to mkcert)
+        // Copy certificate to system trust store using tee
         let sys_path_str = sys_path.to_string_lossy();
         let output = Command::new("sudo")
             .arg("tee")

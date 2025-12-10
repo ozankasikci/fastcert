@@ -101,8 +101,8 @@ fn test_security_certificate_not_self_signed() {
     assert!(text.contains("issuer="), "Should have issuer field");
     assert!(text.contains("subject="), "Should have subject field");
 
-    // Issuer should contain "mkcert" (CA name)
-    assert!(text.contains("mkcert"), "Should be signed by mkcert CA");
+    // Issuer should contain "fastcert" (CA name)
+    assert!(text.contains("fastcert"), "Should be signed by fastcert CA");
 
     unsafe {
         env::remove_var("CAROOT");

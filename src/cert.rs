@@ -455,7 +455,7 @@ pub fn key_to_pem(key: &KeyPair) -> Result<String> {
 }
 
 /// Generate file names for certificate, key, and PKCS#12 files
-/// Matches mkcert behavior: example.com+4.pem, example.com+4-key.pem, example.com+4.p12
+/// File naming convention: example.com+4.pem, example.com+4-key.pem, example.com+4.p12
 pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, PathBuf) {
     // Use provided file names if available
     if let (Some(cert), Some(key), Some(p12)) =
@@ -573,7 +573,7 @@ pub fn verify_file_permissions(_path: &PathBuf, _expected_mode: u32) -> Result<b
 }
 
 /// Write PKCS#12 file with certificate, key, and CA cert
-/// Uses the default password "changeit" as per mkcert behavior
+/// Uses the default password "changeit"
 pub fn write_pkcs12_file(
     p12_path: &PathBuf,
     cert_der: &[u8],
