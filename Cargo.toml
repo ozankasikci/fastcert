@@ -2,6 +2,15 @@
 name = "fastcert"
 version = "1.0.0"
 edition = "2024"
+description = "A simple zero-config tool for making locally-trusted development certificates"
+license = "MIT"
+repository = "https://github.com/ozankasikci/fastcert"
+homepage = "https://github.com/ozankasikci/fastcert"
+documentation = "https://github.com/ozankasikci/fastcert#readme"
+readme = "README.md"
+keywords = ["certificate", "tls", "ssl", "development", "localhost"]
+categories = ["command-line-utilities", "development-tools"]
+authors = ["Ozan Kasikci <ozankasikci@gmail.com>"]
 
 [dependencies]
 anyhow = "1.0"
