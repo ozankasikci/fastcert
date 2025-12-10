@@ -198,9 +198,11 @@ fn test_e2e_multiple_certificates_same_ca() {
     }
 
     // Generate multiple certificates with the same CA
-    let test_domains = [vec!["app1.local".to_string()],
+    let test_domains = [
+        vec!["app1.local".to_string()],
         vec!["app2.local".to_string()],
-        vec!["app3.local".to_string()]];
+        vec!["app3.local".to_string()],
+    ];
 
     let mut cert_paths = Vec::new();
 

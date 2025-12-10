@@ -12,6 +12,7 @@ pub fn get_test_lock() -> std::sync::MutexGuard<'static, ()> {
 }
 
 /// Helper function to run openssl commands and return output
+#[allow(dead_code)]
 pub fn run_openssl(args: &[&str]) -> Result<String, String> {
     let output = Command::new("openssl")
         .args(args)
@@ -29,6 +30,7 @@ pub fn run_openssl(args: &[&str]) -> Result<String, String> {
 }
 
 /// Verify certificate is signed by CA using openssl
+#[allow(dead_code)]
 pub fn verify_cert_with_ca(cert_path: &std::path::Path, ca_cert_path: &std::path::Path) -> bool {
     let output = Command::new("openssl")
         .args(["verify", "-CAfile"])
@@ -46,6 +48,7 @@ pub fn verify_cert_with_ca(cert_path: &std::path::Path, ca_cert_path: &std::path
 }
 
 /// Get certificate serial number
+#[allow(dead_code)]
 pub fn get_cert_serial(cert_path: &std::path::Path) -> Result<String, String> {
     run_openssl(&[
         "x509",
@@ -58,6 +61,7 @@ pub fn get_cert_serial(cert_path: &std::path::Path) -> Result<String, String> {
 }
 
 /// Get certificate text (full details)
+#[allow(dead_code)]
 pub fn get_cert_text(cert_path: &std::path::Path) -> Result<String, String> {
     run_openssl(&[
         "x509",
@@ -69,6 +73,7 @@ pub fn get_cert_text(cert_path: &std::path::Path) -> Result<String, String> {
 }
 
 /// Check if certificate contains a specific SAN
+#[allow(dead_code)]
 pub fn cert_contains_san(cert_path: &std::path::Path, san: &str) -> Result<bool, String> {
     let text = get_cert_text(cert_path)?;
     Ok(text.contains(san))
