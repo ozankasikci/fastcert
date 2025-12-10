@@ -1501,4 +1501,138 @@ mod tests {
         let result = validate_cert_chain(cert_der, &ca_cert_der);
         assert!(result.is_ok(), "Certificate chain validation failed");
     }
+
+    #[test]
+    fn test_multi_domain_certificate() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        let hosts = vec![
+            "example.com".to_string(),
+            "www.example.com".to_string(),
+            "api.example.com".to_string(),
+            "localhost".to_string(),
+            "127.0.0.1".to_string(),
+        ];
+        let mut config = CertificateConfig::new(hosts);
+        config.use_ecdsa = true;
+        config.cert_file = Some(temp_dir.path().join("multi.pem"));
+        config.key_file = Some(temp_dir.path().join("multi-key.pem"));
+
+        let result = generate_certificate_internal(&config, &ca_cert);
+        assert!(result.is_ok(), "Multi-domain certificate generation failed");
+    }
+
+    #[test]
+    fn test_ipv6_certificate() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        let hosts = vec![
+            "::1".to_string(),
+            "fe80::1".to_string(),
+            "2001:db8::1".to_string(),
+        ];
+        let mut config = CertificateConfig::new(hosts);
+        config.use_ecdsa = true;
+        config.cert_file = Some(temp_dir.path().join("ipv6.pem"));
+        config.key_file = Some(temp_dir.path().join("ipv6-key.pem"));
+
+        let result = generate_certificate_internal(&config, &ca_cert);
+        assert!(result.is_ok(), "IPv6 certificate generation failed");
+    }
+
+    #[test]
+    fn test_wildcard_certificate() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        let hosts = vec!["*.example.com".to_string()];
+        let mut config = CertificateConfig::new(hosts);
+        config.use_ecdsa = true;
+        config.cert_file = Some(temp_dir.path().join("wildcard.pem"));
+        config.key_file = Some(temp_dir.path().join("wildcard-key.pem"));
+
+        let result = generate_certificate_internal(&config, &ca_cert);
+        assert!(result.is_ok(), "Wildcard certificate generation failed");
+    }
+
+    #[test]
+    fn test_client_certificate() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        let hosts = vec!["client@example.com".to_string()];
+        let mut config = CertificateConfig::new(hosts);
+        config.use_ecdsa = true;
+        config.client_cert = true;
+        config.cert_file = Some(temp_dir.path().join("client.pem"));
+        config.key_file = Some(temp_dir.path().join("client-key.pem"));
+
+        let result = generate_certificate_internal(&config, &ca_cert);
+        assert!(result.is_ok(), "Client certificate generation failed");
+    }
+
+    #[test]
+    fn test_pkcs12_export() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+
+        let hosts = vec!["example.com".to_string()];
+        let mut config = CertificateConfig::new(hosts);
+        config.use_ecdsa = true;
+        config.pkcs12 = true;
+        config.p12_file = Some(temp_dir.path().join("example.p12"));
+
+        let result = generate_certificate_internal(&config, &ca_cert);
+        assert!(result.is_ok(), "PKCS#12 export failed");
+
+        let p12_path = temp_dir.path().join("example.p12");
+        assert!(p12_path.exists(), "PKCS#12 file was not created");
+    }
 }
