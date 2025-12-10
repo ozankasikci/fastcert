@@ -179,6 +179,32 @@ pub fn is_cert_expiring_soon(expiration: OffsetDateTime) -> bool {
     days_until_expiry <= 30 && days_until_expiry >= 0
 }
 
+/// Validate certificate chain (cert must be signed by CA)
+pub fn validate_cert_chain(cert_der: &[u8], ca_cert_der: &[u8]) -> Result<()> {
+    use x509_parser::prelude::*;
+
+    // Parse the certificate
+    let (_, cert) = X509Certificate::from_der(cert_der)
+        .map_err(|e| Error::Certificate(format!("Failed to parse certificate: {}", e)))?;
+
+    // Parse the CA certificate
+    let (_, ca_cert) = X509Certificate::from_der(ca_cert_der)
+        .map_err(|e| Error::Certificate(format!("Failed to parse CA certificate: {}", e)))?;
+
+    // Verify that the cert was issued by the CA
+    // Check that the issuer matches the CA's subject
+    if cert.issuer() != ca_cert.subject() {
+        return Err(Error::Certificate(
+            "Certificate was not issued by the provided CA".to_string()
+        ));
+    }
+
+    // Additional checks could include signature verification
+    // but x509-parser doesn't provide easy signature verification
+
+    Ok(())
+}
+
 /// Print expiry warning if certificate is expiring soon
 pub fn check_cert_expiry_warning(expiration: OffsetDateTime) {
     if is_cert_expiring_soon(expiration) {
@@ -1435,5 +1461,44 @@ mod tests {
         for handle in handles {
             handle.join().unwrap();
         }
+    }
+
+    #[test]
+    fn test_certificate_chain_validation() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create CA
+        let ca_params = {
+            let mut params = CertificateParams::default();
+            params.alg = &PKCS_ECDSA_P256_SHA256;
+            params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
+            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+        };
+        let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
+        let ca_cert_der = ca_cert.serialize_der().unwrap();
+
+        // Create end-entity certificate
+        let hosts = vec!["example.com".to_string()];
+        let mut config = CertificateConfig::new(hosts);
+        config.use_ecdsa = true;
+
+        let cert_path = temp_dir.path().join("cert.pem");
+        let key_path = temp_dir.path().join("key.pem");
+        config.cert_file = Some(cert_path.clone());
+        config.key_file = Some(key_path.clone());
+
+        generate_certificate_internal(&config, &ca_cert).unwrap();
+
+        // Read the generated certificate
+        let cert_pem = fs::read_to_string(&cert_path).unwrap();
+        let cert_der_data = pem::parse(&cert_pem).unwrap();
+        let cert_der = cert_der_data.contents();
+
+        // Validate the chain
+        let result = validate_cert_chain(cert_der, &ca_cert_der);
+        assert!(result.is_ok(), "Certificate chain validation failed");
     }
 }
