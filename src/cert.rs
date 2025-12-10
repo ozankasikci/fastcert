@@ -101,6 +101,17 @@ pub fn generate_serial_number() -> [u8; 16] {
     serial
 }
 
+/// Format certificate expiration date in RFC2822 format
+pub fn format_expiration_date(expiration: OffsetDateTime) -> String {
+    expiration.format(&time::format_description::well_known::Rfc2822)
+        .unwrap_or_else(|_| format!("{}", expiration))
+}
+
+/// Calculate certificate expiration date (2 years and 3 months from now)
+pub fn calculate_cert_expiration() -> OffsetDateTime {
+    OffsetDateTime::now_utc() + Duration::days(730 + 90)
+}
+
 fn generate_keypair(use_ecdsa: bool) -> Result<KeyPair> {
     let alg = if use_ecdsa {
         &PKCS_ECDSA_P256_SHA256
@@ -553,10 +564,8 @@ pub fn generate_from_csr(
     println!("\nThe certificate is at {:?}\n", output_file);
 
     // Print expiration date
-    let expiration = OffsetDateTime::now_utc() + Duration::days(730 + 90);
-    use ::time::format_description::well_known;
-    println!("It will expire on {}\n", expiration.format(&well_known::Rfc2822)
-        .unwrap_or_else(|_| format!("{}", expiration)));
+    let expiration = calculate_cert_expiration();
+    println!("It will expire on {}\n", format_expiration_date(expiration));
 
     Ok(())
 }
@@ -718,9 +727,8 @@ fn generate_certificate_internal(
     }
 
     // Print expiration date
-    let expiration = OffsetDateTime::now_utc() + Duration::days(730 + 90);
-    println!("{} {}\n", "It will expire on".bright_white(), expiration.format(&time::format_description::well_known::Rfc2822)
-        .unwrap_or_else(|_| format!("{}", expiration)));
+    let expiration = calculate_cert_expiration();
+    println!("{} {}\n", "It will expire on".bright_white(), format_expiration_date(expiration));
 
     Ok(())
 }
@@ -1057,5 +1065,25 @@ mod tests {
         assert_eq!(serial2.len(), 16);
         assert_ne!(serial1, serial2, "Serial numbers should be unique");
         assert_eq!(serial1[0] & 0x80, 0, "Serial number high bit should be clear");
+    }
+
+    #[test]
+    fn test_calculate_cert_expiration() {
+        let expiration = calculate_cert_expiration();
+        let now = OffsetDateTime::now_utc();
+        let diff = expiration - now;
+
+        // Should be approximately 820 days (730 + 90)
+        assert!(diff.whole_days() >= 819 && diff.whole_days() <= 821);
+    }
+
+    #[test]
+    fn test_format_expiration_date() {
+        let now = OffsetDateTime::now_utc();
+        let formatted = format_expiration_date(now);
+
+        // Should contain common date elements
+        assert!(!formatted.is_empty());
+        assert!(formatted.len() > 10);
     }
 }
