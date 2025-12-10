@@ -13,13 +13,16 @@
 //! email addresses, and URIs.
 
 use crate::{Error, Result};
-use rcgen::{KeyPair, SanType, CertificateParams, KeyUsagePurpose, ExtendedKeyUsagePurpose, PKCS_RSA_SHA256, PKCS_ECDSA_P256_SHA256};
+use colored::*;
+use rcgen::{
+    CertificateParams, ExtendedKeyUsagePurpose, KeyPair, KeyUsagePurpose, PKCS_ECDSA_P256_SHA256,
+    PKCS_RSA_SHA256, SanType,
+};
 use regex::Regex;
+use std::fs;
 use std::net::IpAddr;
 use std::path::PathBuf;
-use std::fs;
-use time::{OffsetDateTime, Duration};
-use colored::*;
+use time::{Duration, OffsetDateTime};
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -135,7 +138,10 @@ pub fn validate_ip_address(ip: &IpAddr) -> Result<()> {
             // Allow all valid IPv4 addresses for development
             // Just ensure it's not unspecified
             if ipv4.is_unspecified() {
-                return Err(Error::InvalidHostname(format!("Unspecified IP address not allowed: {}", ip)));
+                return Err(Error::InvalidHostname(format!(
+                    "Unspecified IP address not allowed: {}",
+                    ip
+                )));
             }
 
             Ok(())
@@ -143,7 +149,10 @@ pub fn validate_ip_address(ip: &IpAddr) -> Result<()> {
         IpAddr::V6(ipv6) => {
             // Validate IPv6 address
             if ipv6.is_unspecified() {
-                return Err(Error::InvalidHostname(format!("Unspecified IP address not allowed: {}", ip)));
+                return Err(Error::InvalidHostname(format!(
+                    "Unspecified IP address not allowed: {}",
+                    ip
+                )));
             }
 
             Ok(())
@@ -159,7 +168,10 @@ pub fn validate_email_address(email: &str) -> Result<()> {
     ).unwrap();
 
     if !email_regex.is_match(email) {
-        return Err(Error::InvalidHostname(format!("Invalid email address: {}", email)));
+        return Err(Error::InvalidHostname(format!(
+            "Invalid email address: {}",
+            email
+        )));
     }
 
     Ok(())
@@ -171,14 +183,20 @@ pub fn validate_uri(uri: &str) -> Result<()> {
     let uri_regex = Regex::new(r"^[a-zA-Z][a-zA-Z0-9+.-]*://[^\s]+$").unwrap();
 
     if !uri_regex.is_match(uri) {
-        return Err(Error::InvalidHostname(format!("Invalid URI format: {}", uri)));
+        return Err(Error::InvalidHostname(format!(
+            "Invalid URI format: {}",
+            uri
+        )));
     }
 
     // Ensure scheme is valid
     if let Some(scheme_end) = uri.find("://") {
         let scheme = &uri[..scheme_end];
         if scheme.is_empty() {
-            return Err(Error::InvalidHostname(format!("URI must have a scheme: {}", uri)));
+            return Err(Error::InvalidHostname(format!(
+                "URI must have a scheme: {}",
+                uri
+            )));
         }
     }
 
@@ -186,8 +204,7 @@ pub fn validate_uri(uri: &str) -> Result<()> {
 }
 
 pub fn validate_hostname(hostname: &str) -> Result<()> {
-    let hostname_regex = Regex::new(r"(?i)^(\*\.)?[0-9a-z_-]([0-9a-z._-]*[0-9a-z_-])?$")
-        .unwrap();
+    let hostname_regex = Regex::new(r"(?i)^(\*\.)?[0-9a-z_-]([0-9a-z._-]*[0-9a-z_-])?$").unwrap();
 
     if !hostname_regex.is_match(hostname) {
         return Err(Error::InvalidHostname(hostname.to_string()));
@@ -200,7 +217,10 @@ pub fn validate_hostname(hostname: &str) -> Result<()> {
 pub fn domain_to_ascii(domain: &str) -> Result<String> {
     match idna::domain_to_ascii(domain) {
         Ok(ascii) => Ok(ascii),
-        Err(_) => Err(Error::InvalidHostname(format!("Invalid international domain name: {}", domain)))
+        Err(_) => Err(Error::InvalidHostname(format!(
+            "Invalid international domain name: {}",
+            domain
+        ))),
     }
 }
 
@@ -211,10 +231,11 @@ pub fn domain_to_unicode(domain: &str) -> String {
 
 /// Generate a cryptographically secure random serial number for certificates
 pub fn generate_serial_number() -> [u8; 16] {
-    use ring::rand::{SystemRandom, SecureRandom};
+    use ring::rand::{SecureRandom, SystemRandom};
     let rng = SystemRandom::new();
     let mut serial = [0u8; 16];
-    rng.fill(&mut serial).expect("Failed to generate random serial number");
+    rng.fill(&mut serial)
+        .expect("Failed to generate random serial number");
     // Ensure the serial number is positive by clearing the high bit
     serial[0] &= 0x7F;
     serial
@@ -222,7 +243,8 @@ pub fn generate_serial_number() -> [u8; 16] {
 
 /// Format certificate expiration date in RFC2822 format
 pub fn format_expiration_date(expiration: OffsetDateTime) -> String {
-    expiration.format(&time::format_description::well_known::Rfc2822)
+    expiration
+        .format(&time::format_description::well_known::Rfc2822)
         .unwrap_or_else(|_| format!("{}", expiration))
 }
 
@@ -254,7 +276,7 @@ pub fn validate_cert_chain(cert_der: &[u8], ca_cert_der: &[u8]) -> Result<()> {
     // Check that the issuer matches the CA's subject
     if cert.issuer() != ca_cert.subject() {
         return Err(Error::Certificate(
-            "Certificate was not issued by the provided CA".to_string()
+            "Certificate was not issued by the provided CA".to_string(),
         ));
     }
 
@@ -268,10 +290,13 @@ pub fn validate_cert_chain(cert_der: &[u8], ca_cert_der: &[u8]) -> Result<()> {
 pub fn check_cert_expiry_warning(expiration: OffsetDateTime) {
     if is_cert_expiring_soon(expiration) {
         let days = (expiration - OffsetDateTime::now_utc()).whole_days();
-        eprintln!("{} Certificate expires in {} days!", "Warning:".yellow().bold(), days);
+        eprintln!(
+            "{} Certificate expires in {} days!",
+            "Warning:".yellow().bold(),
+            days
+        );
     }
 }
-
 
 /// Process a single host and convert to SanType
 fn process_host_to_san(host: &str) -> Result<SanType> {
@@ -283,23 +308,15 @@ fn process_host_to_san(host: &str) -> Result<SanType> {
             check_wildcard_warning(&name);
             Ok(SanType::DnsName(name))
         }
-        HostType::IpAddress(ip) => {
-            Ok(SanType::IpAddress(ip))
-        }
-        HostType::Email(email) => {
-            Ok(SanType::Rfc822Name(email))
-        }
-        HostType::Uri(uri) => {
-            Ok(SanType::URI(uri))
-        }
+        HostType::IpAddress(ip) => Ok(SanType::IpAddress(ip)),
+        HostType::Email(email) => Ok(SanType::Rfc822Name(email)),
+        HostType::Uri(uri) => Ok(SanType::URI(uri)),
     }
 }
 
 /// Build Subject Alternative Names from a list of host strings
 pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
-    hosts.iter()
-        .map(|host| process_host_to_san(host))
-        .collect()
+    hosts.iter().map(|host| process_host_to_san(host)).collect()
 }
 
 /// Validate wildcard depth (only one level deep is allowed)
@@ -308,15 +325,24 @@ pub fn validate_wildcard_depth(name: &str) -> Result<()> {
         // Count the number of wildcard components
         let wildcard_count = name.matches("*").count();
         if wildcard_count > 1 {
-            return Err(Error::InvalidHostname(format!("Multiple wildcards not allowed: {}", name)));
+            return Err(Error::InvalidHostname(format!(
+                "Multiple wildcards not allowed: {}",
+                name
+            )));
         }
 
         // Ensure wildcard is only at the beginning
         if stripped.contains('*') {
-            return Err(Error::InvalidHostname(format!("Wildcard must be at the beginning: {}", name)));
+            return Err(Error::InvalidHostname(format!(
+                "Wildcard must be at the beginning: {}",
+                name
+            )));
         }
     } else if name.contains('*') {
-        return Err(Error::InvalidHostname(format!("Wildcard must be at the beginning: {}", name)));
+        return Err(Error::InvalidHostname(format!(
+            "Wildcard must be at the beginning: {}",
+            name
+        )));
     }
 
     Ok(())
@@ -327,12 +353,20 @@ fn check_wildcard_warning(name: &str) {
     // Check for second-level wildcards (e.g., *.com, *.net)
     let second_level_wildcard_regex = Regex::new(r"(?i)^\*\.[0-9a-z_-]+$").unwrap();
     if second_level_wildcard_regex.is_match(name) {
-        eprintln!("{} many browsers don't support second-level wildcards like \"{}\"", "Warning:".yellow().bold(), name);
+        eprintln!(
+            "{} many browsers don't support second-level wildcards like \"{}\"",
+            "Warning:".yellow().bold(),
+            name
+        );
     }
 
     // General wildcard reminder
     if let Some(stripped) = name.strip_prefix("*.") {
-        eprintln!("{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), stripped);
+        eprintln!(
+            "{} X.509 wildcards only go one level deep, so this won't match a.b.{}",
+            "Reminder:".cyan(),
+            stripped
+        );
     }
 }
 
@@ -364,22 +398,37 @@ pub fn create_cert_params(hosts: &[String]) -> Result<CertificateParams> {
 
 /// Add server authentication extended key usage
 pub fn add_server_auth(params: &mut CertificateParams) {
-    if !params.extended_key_usages.contains(&ExtendedKeyUsagePurpose::ServerAuth) {
-        params.extended_key_usages.push(ExtendedKeyUsagePurpose::ServerAuth);
+    if !params
+        .extended_key_usages
+        .contains(&ExtendedKeyUsagePurpose::ServerAuth)
+    {
+        params
+            .extended_key_usages
+            .push(ExtendedKeyUsagePurpose::ServerAuth);
     }
 }
 
 /// Add client authentication extended key usage
 pub fn add_client_auth(params: &mut CertificateParams) {
-    if !params.extended_key_usages.contains(&ExtendedKeyUsagePurpose::ClientAuth) {
-        params.extended_key_usages.push(ExtendedKeyUsagePurpose::ClientAuth);
+    if !params
+        .extended_key_usages
+        .contains(&ExtendedKeyUsagePurpose::ClientAuth)
+    {
+        params
+            .extended_key_usages
+            .push(ExtendedKeyUsagePurpose::ClientAuth);
     }
 }
 
 /// Add email protection extended key usage
 pub fn add_email_protection(params: &mut CertificateParams) {
-    if !params.extended_key_usages.contains(&ExtendedKeyUsagePurpose::EmailProtection) {
-        params.extended_key_usages.push(ExtendedKeyUsagePurpose::EmailProtection);
+    if !params
+        .extended_key_usages
+        .contains(&ExtendedKeyUsagePurpose::EmailProtection)
+    {
+        params
+            .extended_key_usages
+            .push(ExtendedKeyUsagePurpose::EmailProtection);
     }
 }
 
@@ -398,7 +447,9 @@ pub fn key_to_pem(key: &KeyPair) -> Result<String> {
 /// Matches mkcert behavior: example.com+4.pem, example.com+4-key.pem, example.com+4.p12
 pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, PathBuf) {
     // Use provided file names if available
-    if let (Some(cert), Some(key), Some(p12)) = (&config.cert_file, &config.key_file, &config.p12_file) {
+    if let (Some(cert), Some(key), Some(p12)) =
+        (&config.cert_file, &config.key_file, &config.p12_file)
+    {
         return (cert.clone(), key.clone(), p12.clone());
     }
 
@@ -406,9 +457,7 @@ pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, Pat
     let default_name = if config.hosts.is_empty() {
         "cert".to_string()
     } else {
-        let mut name = config.hosts[0]
-            .replace(':', "_")
-            .replace('*', "_wildcard");
+        let mut name = config.hosts[0].replace(':', "_").replace('*', "_wildcard");
 
         // Add count suffix if more than one host
         if config.hosts.len() > 1 {
@@ -423,11 +472,17 @@ pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, Pat
         name
     };
 
-    let cert_file = config.cert_file.clone()
+    let cert_file = config
+        .cert_file
+        .clone()
         .unwrap_or_else(|| PathBuf::from(format!("./{}.pem", default_name)));
-    let key_file = config.key_file.clone()
+    let key_file = config
+        .key_file
+        .clone()
         .unwrap_or_else(|| PathBuf::from(format!("./{}-key.pem", default_name)));
-    let p12_file = config.p12_file.clone()
+    let p12_file = config
+        .p12_file
+        .clone()
         .unwrap_or_else(|| PathBuf::from(format!("./{}.p12", default_name)));
 
     (cert_file, key_file, p12_file)
@@ -437,41 +492,40 @@ pub fn generate_file_names(config: &CertificateConfig) -> (PathBuf, PathBuf, Pat
 /// Certificate files: 0644 (readable by all)
 /// Key files: 0600 (readable only by owner)
 /// If cert and key are in the same file, use 0600
-pub fn write_pem_files(cert_path: &PathBuf, key_path: &PathBuf, cert_pem: &str, key_pem: &str) -> Result<()> {
+pub fn write_pem_files(
+    cert_path: &PathBuf,
+    key_path: &PathBuf,
+    cert_pem: &str,
+    key_pem: &str,
+) -> Result<()> {
     use std::io::BufWriter;
 
     if cert_path == key_path {
         // Combined file: write both cert and key with restricted permissions (0600)
-        let file = std::fs::File::create(cert_path)
-            .map_err(Error::Io)?;
+        let file = std::fs::File::create(cert_path).map_err(Error::Io)?;
         let mut writer = BufWriter::new(file);
         use std::io::Write;
-        writer.write_all(cert_pem.as_bytes())
-            .map_err(Error::Io)?;
-        writer.write_all(key_pem.as_bytes())
-            .map_err(Error::Io)?;
-        writer.flush()
-            .map_err(Error::Io)?;
+        writer.write_all(cert_pem.as_bytes()).map_err(Error::Io)?;
+        writer.write_all(key_pem.as_bytes()).map_err(Error::Io)?;
+        writer.flush().map_err(Error::Io)?;
         set_file_permissions(cert_path, 0o600)?;
     } else {
         // Separate files
-        let cert_file = std::fs::File::create(cert_path)
-            .map_err(Error::Io)?;
+        let cert_file = std::fs::File::create(cert_path).map_err(Error::Io)?;
         let mut cert_writer = BufWriter::new(cert_file);
         use std::io::Write;
-        cert_writer.write_all(cert_pem.as_bytes())
+        cert_writer
+            .write_all(cert_pem.as_bytes())
             .map_err(Error::Io)?;
-        cert_writer.flush()
-            .map_err(Error::Io)?;
+        cert_writer.flush().map_err(Error::Io)?;
         set_file_permissions(cert_path, 0o644)?;
 
-        let key_file = std::fs::File::create(key_path)
-            .map_err(Error::Io)?;
+        let key_file = std::fs::File::create(key_path).map_err(Error::Io)?;
         let mut key_writer = BufWriter::new(key_file);
-        key_writer.write_all(key_pem.as_bytes())
+        key_writer
+            .write_all(key_pem.as_bytes())
             .map_err(Error::Io)?;
-        key_writer.flush()
-            .map_err(Error::Io)?;
+        key_writer.flush().map_err(Error::Io)?;
         set_file_permissions(key_path, 0o600)?;
     }
 
@@ -482,8 +536,7 @@ pub fn write_pem_files(cert_path: &PathBuf, key_path: &PathBuf, cert_pem: &str, 
 #[cfg(unix)]
 pub(crate) fn set_file_permissions(path: &PathBuf, mode: u32) -> Result<()> {
     let permissions = fs::Permissions::from_mode(mode);
-    fs::set_permissions(path, permissions)
-        .map_err(Error::Io)
+    fs::set_permissions(path, permissions).map_err(Error::Io)
 }
 
 #[cfg(not(unix))]
@@ -496,8 +549,7 @@ pub(crate) fn set_file_permissions(_path: &PathBuf, _mode: u32) -> Result<()> {
 /// Verify file permissions (Unix only)
 #[cfg(unix)]
 pub fn verify_file_permissions(path: &PathBuf, expected_mode: u32) -> Result<bool> {
-    let metadata = fs::metadata(path)
-        .map_err(Error::Io)?;
+    let metadata = fs::metadata(path).map_err(Error::Io)?;
     let permissions = metadata.permissions();
     let actual_mode = permissions.mode() & 0o777;
     Ok(actual_mode == expected_mode)
@@ -532,8 +584,7 @@ pub fn write_pkcs12_file(
     let pfx_data = pfx.to_der();
 
     // Write to file with 0644 permissions
-    fs::write(p12_path, &pfx_data)
-        .map_err(Error::Io)?;
+    fs::write(p12_path, &pfx_data).map_err(Error::Io)?;
     set_file_permissions(p12_path, 0o644)?;
 
     Ok(())
@@ -543,18 +594,31 @@ pub fn write_pkcs12_file(
 pub fn print_hosts(hosts: &[String]) {
     let second_level_wildcard_regex = Regex::new(r"(?i)^\*\.[0-9a-z_-]+$").unwrap();
 
-    println!("\n{}", "Created a new certificate valid for the following names".green().bold());
+    println!(
+        "\n{}",
+        "Created a new certificate valid for the following names"
+            .green()
+            .bold()
+    );
     for host in hosts {
         println!(" - {}", host.bright_white());
         if second_level_wildcard_regex.is_match(host) {
-            println!("   {} many browsers don't support second-level wildcards like {}", "Warning:".yellow().bold(), host);
+            println!(
+                "   {} many browsers don't support second-level wildcards like {}",
+                "Warning:".yellow().bold(),
+                host
+            );
         }
     }
 
     // Check for any wildcards and print reminder
     for host in hosts {
         if let Some(stripped) = host.strip_prefix("*.") {
-            println!("\n{} X.509 wildcards only go one level deep, so this won't match a.b.{}", "Reminder:".cyan(), stripped);
+            println!(
+                "\n{} X.509 wildcards only go one level deep, so this won't match a.b.{}",
+                "Reminder:".cyan(),
+                stripped
+            );
             break;
         }
     }
@@ -623,8 +687,7 @@ pub fn generate_certificate(
 
 /// Read CSR file from disk
 pub fn read_csr_file(csr_path: &str) -> Result<Vec<u8>> {
-    fs::read(csr_path)
-        .map_err(|e| Error::Certificate(format!("Failed to read CSR file: {}", e)))
+    fs::read(csr_path).map_err(|e| Error::Certificate(format!("Failed to read CSR file: {}", e)))
 }
 
 /// Parse CSR from PEM format and return the DER bytes
@@ -637,9 +700,11 @@ pub fn parse_csr_pem(csr_bytes: &[u8]) -> Result<Vec<u8>> {
     let begin_marker = "-----BEGIN";
     let end_marker = "-----END";
 
-    let begin_pos = pem_str.find(begin_marker)
+    let begin_pos = pem_str
+        .find(begin_marker)
         .ok_or_else(|| Error::Certificate("No PEM data found in CSR file".to_string()))?;
-    let end_pos = pem_str.find(end_marker)
+    let end_pos = pem_str
+        .find(end_marker)
         .ok_or_else(|| Error::Certificate("Invalid PEM format in CSR file".to_string()))?;
 
     // Find the end of the final line (after END marker)
@@ -671,7 +736,9 @@ pub fn parse_csr_pem(csr_bytes: &[u8]) -> Result<Vec<u8>> {
 }
 
 /// Validate CSR signature
-pub fn validate_csr_signature(csr: &x509_parser::certification_request::X509CertificationRequest) -> Result<()> {
+pub fn validate_csr_signature(
+    csr: &x509_parser::certification_request::X509CertificationRequest,
+) -> Result<()> {
     // x509-parser 0.16 doesn't have verify_signature for CSR
     // We'll do basic validation by checking that the CSR was parsed successfully
     // The signature verification happens during parsing in x509-parser
@@ -686,20 +753,25 @@ pub fn validate_csr_signature(csr: &x509_parser::certification_request::X509Cert
 }
 
 /// Extract subject alternative names from CSR
-pub fn extract_san_from_csr(csr: &x509_parser::certification_request::X509CertificationRequest) -> Result<Vec<String>> {
+pub fn extract_san_from_csr(
+    csr: &x509_parser::certification_request::X509CertificationRequest,
+) -> Result<Vec<String>> {
     let mut hosts = Vec::new();
     let req_info = &csr.certification_request_info;
 
     // For now, just extract the Common Name from the subject
     // Full SAN extraction from CSR extensions is complex and can be added later
     if let Some(cn) = req_info.subject.iter_common_name().next()
-        && let Ok(cn_str) = cn.as_str() {
-            hosts.push(cn_str.to_string());
-        }
+        && let Ok(cn_str) = cn.as_str()
+    {
+        hosts.push(cn_str.to_string());
+    }
 
     // If no CN found, return an error
     if hosts.is_empty() {
-        return Err(Error::Certificate("No Common Name found in CSR subject".to_string()));
+        return Err(Error::Certificate(
+            "No Common Name found in CSR subject".to_string(),
+        ));
     }
 
     Ok(hosts)
@@ -726,10 +798,7 @@ pub fn extract_san_from_csr(csr: &x509_parser::certification_request::X509Certif
 /// - The CSR signature is invalid
 /// - No subject names are found in the CSR
 /// - Certificate generation or signing fails
-pub fn generate_from_csr(
-    csr_path: &str,
-    cert_file: Option<&str>,
-) -> Result<()> {
+pub fn generate_from_csr(csr_path: &str, cert_file: Option<&str>) -> Result<()> {
     use x509_parser::prelude::*;
 
     // Load CA
@@ -757,7 +826,9 @@ pub fn generate_from_csr(
     let hosts = extract_san_from_csr(&csr)?;
 
     if hosts.is_empty() {
-        return Err(Error::Certificate("No subject names found in CSR".to_string()));
+        return Err(Error::Certificate(
+            "No subject names found in CSR".to_string(),
+        ));
     }
 
     // Get CA cert and key for signing
@@ -790,7 +861,8 @@ pub fn generate_from_csr(
         .map_err(|e| Error::Certificate(format!("Failed to create certificate: {}", e)))?;
 
     // Sign with CA
-    let cert_der = cert.serialize_der_with_signer(&ca_cert)
+    let cert_der = cert
+        .serialize_der_with_signer(&ca_cert)
         .map_err(|e| Error::Certificate(format!("Failed to sign certificate: {}", e)))?;
 
     // Determine output file name
@@ -807,8 +879,7 @@ pub fn generate_from_csr(
 
     // Write certificate (PEM format)
     let cert_pem = cert_to_pem(&cert_der);
-    fs::write(&output_file, cert_pem.as_bytes())
-        .map_err(Error::Io)?;
+    fs::write(&output_file, cert_pem.as_bytes()).map_err(Error::Io)?;
     set_file_permissions(&output_file, 0o644)?;
 
     // Print certificate information
@@ -828,27 +899,30 @@ fn copy_subject_to_params(
     params: &mut CertificateParams,
     subject: &x509_parser::x509::X509Name,
 ) -> Result<()> {
-    use rcgen::{DnType, DistinguishedName};
+    use rcgen::{DistinguishedName, DnType};
 
     let mut dn = DistinguishedName::new();
 
     // Copy common name
     if let Some(cn) = subject.iter_common_name().next()
-        && let Ok(cn_str) = cn.as_str() {
-            dn.push(DnType::CommonName, cn_str);
-        }
+        && let Ok(cn_str) = cn.as_str()
+    {
+        dn.push(DnType::CommonName, cn_str);
+    }
 
     // Copy organization
     if let Some(o) = subject.iter_organization().next()
-        && let Ok(o_str) = o.as_str() {
-            dn.push(DnType::OrganizationName, o_str);
-        }
+        && let Ok(o_str) = o.as_str()
+    {
+        dn.push(DnType::OrganizationName, o_str);
+    }
 
     // Copy organizational unit
     if let Some(ou) = subject.iter_organizational_unit().next()
-        && let Ok(ou_str) = ou.as_str() {
-            dn.push(DnType::OrganizationalUnitName, ou_str);
-        }
+        && let Ok(ou_str) = ou.as_str()
+    {
+        dn.push(DnType::OrganizationalUnitName, ou_str);
+    }
 
     params.distinguished_name = dn;
     Ok(())
@@ -863,10 +937,7 @@ fn load_ca_cert_for_signing(_cert_pem: &str, key_pem: &str) -> Result<rcgen::Cer
     // Create CA certificate params with the loaded key
     let mut params = CertificateParams::default();
     params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-    params.key_usages = vec![
-        KeyUsagePurpose::KeyCertSign,
-        KeyUsagePurpose::CrlSign,
-    ];
+    params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
 
     // Set validity period (10 years like the CA)
     let now = OffsetDateTime::now_utc();
@@ -908,7 +979,10 @@ fn generate_certificate_internal(
     // Check if we have IP addresses, DNS names, or URIs for server auth
     let has_server_names = config.hosts.iter().any(|h| {
         let host_type = HostType::parse(h).ok();
-        matches!(host_type, Some(HostType::DnsName(_)) | Some(HostType::IpAddress(_)) | Some(HostType::Uri(_)))
+        matches!(
+            host_type,
+            Some(HostType::DnsName(_)) | Some(HostType::IpAddress(_)) | Some(HostType::Uri(_))
+        )
     });
 
     if has_server_names {
@@ -916,9 +990,10 @@ fn generate_certificate_internal(
     }
 
     // Check if we have email addresses for email protection
-    let has_email = config.hosts.iter().any(|h| {
-        matches!(HostType::parse(h).ok(), Some(HostType::Email(_)))
-    });
+    let has_email = config
+        .hosts
+        .iter()
+        .any(|h| matches!(HostType::parse(h).ok(), Some(HostType::Email(_))));
 
     if has_email {
         add_email_protection(&mut params);
@@ -926,10 +1001,9 @@ fn generate_certificate_internal(
 
     // If generating PKCS#12, set the CommonName to the first host (for IIS compatibility)
     if config.pkcs12 {
-        params.distinguished_name.push(
-            rcgen::DnType::CommonName,
-            config.hosts[0].clone()
-        );
+        params
+            .distinguished_name
+            .push(rcgen::DnType::CommonName, config.hosts[0].clone());
     }
 
     // Create the certificate (this generates the keypair automatically)
@@ -937,14 +1011,16 @@ fn generate_certificate_internal(
         .map_err(|e| Error::Certificate(format!("Failed to create certificate: {}", e)))?;
 
     // Serialize the certificate signed by CA
-    let cert_der = cert.serialize_der_with_signer(ca_cert)
+    let cert_der = cert
+        .serialize_der_with_signer(ca_cert)
         .map_err(|e| Error::Certificate(format!("Failed to sign certificate: {}", e)))?;
 
     // Get the key pair from the certificate
     let key_pair = cert.get_key_pair();
 
     // Get CA cert DER for PKCS#12
-    let ca_cert_der = ca_cert.serialize_der()
+    let ca_cert_der = ca_cert
+        .serialize_der()
         .map_err(|e| Error::Certificate(format!("Failed to serialize CA cert: {}", e)))?;
 
     // Get file names
@@ -967,19 +1043,36 @@ fn generate_certificate_internal(
     // Print file paths
     if !config.pkcs12 {
         if cert_file == key_file {
-            println!("\n{} {:?}\n", "The certificate and key are at".green(), cert_file);
+            println!(
+                "\n{} {:?}\n",
+                "The certificate and key are at".green(),
+                cert_file
+            );
         } else {
-            println!("\n{} {:?} {} {:?}\n", "The certificate is at".green(), cert_file, "and the key at".green(), key_file);
+            println!(
+                "\n{} {:?} {} {:?}\n",
+                "The certificate is at".green(),
+                cert_file,
+                "and the key at".green(),
+                key_file
+            );
         }
     } else {
         println!("\n{} {:?}", "The PKCS#12 bundle is at".green(), p12_file);
-        println!("\n{} The legacy PKCS#12 encryption password is the often hardcoded default \"changeit\"\n", "Info:".cyan());
+        println!(
+            "\n{} The legacy PKCS#12 encryption password is the often hardcoded default \"changeit\"\n",
+            "Info:".cyan()
+        );
     }
 
     // Print expiration date
     let expiration = calculate_cert_expiration();
     check_cert_expiry_warning(expiration);
-    println!("{} {}\n", "It will expire on".bright_white(), format_expiration_date(expiration));
+    println!(
+        "{} {}\n",
+        "It will expire on".bright_white(),
+        format_expiration_date(expiration)
+    );
 
     Ok(())
 }
@@ -998,7 +1091,7 @@ mod tests {
     fn test_parse_ip() {
         let ht = HostType::parse("127.0.0.1").unwrap();
         match ht {
-            HostType::IpAddress(_) => {},
+            HostType::IpAddress(_) => {}
             _ => panic!("Expected IP address"),
         }
     }
@@ -1101,10 +1194,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(
-                rcgen::DnType::CommonName,
-                "Test CA"
-            );
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1125,7 +1217,11 @@ mod tests {
 
         // Generate the certificate
         let result = generate_certificate_internal(&config, &ca_cert);
-        assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Certificate generation failed: {:?}",
+            result.err()
+        );
 
         // Verify files were created
         assert!(cert_path.exists(), "Certificate file was not created");
@@ -1135,8 +1231,14 @@ mod tests {
         let cert_pem = fs::read_to_string(&cert_path).unwrap();
         let key_pem = fs::read_to_string(&key_path).unwrap();
 
-        assert!(cert_pem.contains("BEGIN CERTIFICATE"), "Certificate PEM is invalid");
-        assert!(key_pem.contains("BEGIN PRIVATE KEY"), "Private key PEM is invalid");
+        assert!(
+            cert_pem.contains("BEGIN CERTIFICATE"),
+            "Certificate PEM is invalid"
+        );
+        assert!(
+            key_pem.contains("BEGIN PRIVATE KEY"),
+            "Private key PEM is invalid"
+        );
 
         // Verify file permissions on Unix
         #[cfg(unix)]
@@ -1145,7 +1247,11 @@ mod tests {
             let cert_perms = fs::metadata(&cert_path).unwrap().permissions();
             let key_perms = fs::metadata(&key_path).unwrap().permissions();
 
-            assert_eq!(cert_perms.mode() & 0o777, 0o644, "Certificate permissions incorrect");
+            assert_eq!(
+                cert_perms.mode() & 0o777,
+                0o644,
+                "Certificate permissions incorrect"
+            );
             assert_eq!(key_perms.mode() & 0o777, 0o600, "Key permissions incorrect");
         }
     }
@@ -1163,10 +1269,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(
-                rcgen::DnType::CommonName,
-                "Test CA"
-            );
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1179,26 +1284,40 @@ mod tests {
         config.key_file = Some(combined_path.clone());
 
         let result = generate_certificate_internal(&config, &ca_cert);
-        assert!(result.is_ok(), "Certificate generation failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Certificate generation failed: {:?}",
+            result.err()
+        );
 
         assert!(combined_path.exists(), "Combined file was not created");
 
         let combined_pem = fs::read_to_string(&combined_path).unwrap();
-        assert!(combined_pem.contains("BEGIN CERTIFICATE"), "Combined file missing certificate");
-        assert!(combined_pem.contains("BEGIN PRIVATE KEY"), "Combined file missing key");
+        assert!(
+            combined_pem.contains("BEGIN CERTIFICATE"),
+            "Combined file missing certificate"
+        );
+        assert!(
+            combined_pem.contains("BEGIN PRIVATE KEY"),
+            "Combined file missing key"
+        );
 
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             let perms = fs::metadata(&combined_path).unwrap().permissions();
-            assert_eq!(perms.mode() & 0o777, 0o600, "Combined file permissions should be 0600");
+            assert_eq!(
+                perms.mode() & 0o777,
+                0o600,
+                "Combined file permissions should be 0600"
+            );
         }
     }
 
     #[test]
     fn test_csr_file_reading() {
-        use tempfile::TempDir;
         use std::io::Write;
+        use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap();
         let csr_path = temp_dir.path().join("test.csr");
@@ -1216,7 +1335,9 @@ mod tests {
     fn test_csr_pem_parsing() {
         // Generate a valid test CSR using rcgen
         let mut params = CertificateParams::default();
-        params.distinguished_name.push(rcgen::DnType::CommonName, "test.example.com");
+        params
+            .distinguished_name
+            .push(rcgen::DnType::CommonName, "test.example.com");
 
         let cert = rcgen::Certificate::from_params(params).unwrap();
         let csr_der = cert.serialize_request_der().unwrap();
@@ -1226,14 +1347,20 @@ mod tests {
 
         // Test parsing
         let result = parse_csr_pem(csr_pem.as_bytes());
-        assert!(result.is_ok(), "Failed to parse CSR PEM: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to parse CSR PEM: {:?}",
+            result.err()
+        );
     }
 
     #[test]
     fn test_extract_san_from_csr() {
         // Create a test CSR with a common name
         let mut params = CertificateParams::default();
-        params.distinguished_name.push(rcgen::DnType::CommonName, "example.com");
+        params
+            .distinguished_name
+            .push(rcgen::DnType::CommonName, "example.com");
 
         let cert = rcgen::Certificate::from_params(params).unwrap();
         let csr_der = cert.serialize_request_der().unwrap();
@@ -1260,7 +1387,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1276,7 +1405,11 @@ mod tests {
         config.key_file = Some(key_path.clone());
 
         let result = generate_certificate_internal(&config, &ca_cert);
-        assert!(result.is_ok(), "End-to-end certificate generation failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "End-to-end certificate generation failed: {:?}",
+            result.err()
+        );
 
         assert!(cert_path.exists(), "Certificate file not created");
         assert!(key_path.exists(), "Key file not created");
@@ -1315,7 +1448,11 @@ mod tests {
         assert_eq!(serial1.len(), 16);
         assert_eq!(serial2.len(), 16);
         assert_ne!(serial1, serial2, "Serial numbers should be unique");
-        assert_eq!(serial1[0] & 0x80, 0, "Serial number high bit should be clear");
+        assert_eq!(
+            serial1[0] & 0x80,
+            0,
+            "Serial number high bit should be clear"
+        );
     }
 
     #[test]
@@ -1361,7 +1498,9 @@ mod tests {
 
         // Valid IPv6 addresses
         assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))).is_ok());
-        assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))).is_ok());
+        assert!(
+            validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 1))).is_ok()
+        );
 
         // Invalid IPv6 - unspecified
         assert!(validate_ip_address(&IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0))).is_err());
@@ -1477,8 +1616,8 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn test_file_permission_verification() {
-        use tempfile::TempDir;
         use std::fs::File;
+        use tempfile::TempDir;
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test_file.txt");
@@ -1514,7 +1653,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = Arc::new(rcgen::Certificate::from_params(ca_params).unwrap());
@@ -1565,7 +1706,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1602,7 +1745,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1632,7 +1777,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1660,7 +1807,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1684,7 +1833,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();
@@ -1709,7 +1860,9 @@ mod tests {
             let mut params = CertificateParams::default();
             params.alg = &PKCS_ECDSA_P256_SHA256;
             params.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
-            params.distinguished_name.push(rcgen::DnType::CommonName, "Test CA");
+            params
+                .distinguished_name
+                .push(rcgen::DnType::CommonName, "Test CA");
             params
         };
         let ca_cert = rcgen::Certificate::from_params(ca_params).unwrap();

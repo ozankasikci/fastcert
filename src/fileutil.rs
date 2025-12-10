@@ -91,6 +91,8 @@ mod tests {
         assert!(command_exists("cmd"), "cmd should exist on Windows");
 
         // Test with a command that definitely doesn't exist
-        assert!(!command_exists("this_command_definitely_does_not_exist_12345"));
+        assert!(!command_exists(
+            "this_command_definitely_does_not_exist_12345"
+        ));
     }
 }

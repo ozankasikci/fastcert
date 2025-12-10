@@ -1,13 +1,13 @@
 //! Java keystore
 
-use crate::{Error, Result};
 use super::TrustStore;
-use std::path::{Path, PathBuf};
-use std::env;
-use std::process::Command;
-use std::fs;
+use crate::{Error, Result};
 use sha1::Sha1;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 pub struct JavaTrustStore {
     cert_path: PathBuf,
@@ -95,7 +95,12 @@ impl JavaTrustStore {
                         .args(args)
                         .env("JAVA_HOME", &config.java_home)
                         .output()
-                        .map_err(|e| Error::CommandFailed(format!("Failed to execute keytool with sudo: {}", e)))?;
+                        .map_err(|e| {
+                            Error::CommandFailed(format!(
+                                "Failed to execute keytool with sudo: {}",
+                                e
+                            ))
+                        })?;
                     return Ok(output);
                 }
             }
@@ -118,18 +123,16 @@ impl TrustStore for JavaTrustStore {
             return Ok(false);
         }
 
-        let config = Self::detect_java()
-            .ok_or_else(|| Error::TrustStore("Java not found".to_string()))?;
+        let config =
+            Self::detect_java().ok_or_else(|| Error::TrustStore("Java not found".to_string()))?;
 
-        let cacerts_str = config.cacerts_path.to_str()
+        let cacerts_str = config
+            .cacerts_path
+            .to_str()
             .ok_or_else(|| Error::TrustStore("Invalid cacerts path".to_string()))?;
 
         // Get the keytool list output
-        let args = vec![
-            "-list",
-            "-keystore", cacerts_str,
-            "-storepass", "changeit",
-        ];
+        let args = vec!["-list", "-keystore", cacerts_str, "-storepass", "changeit"];
 
         let output = Self::exec_keytool(&args)?;
         if !output.status.success() {
@@ -165,25 +168,35 @@ impl TrustStore for JavaTrustStore {
 
     fn install(&self) -> Result<()> {
         if !Self::has_keytool() {
-            return Err(Error::TrustStore("keytool not found. Please set JAVA_HOME".to_string()));
+            return Err(Error::TrustStore(
+                "keytool not found. Please set JAVA_HOME".to_string(),
+            ));
         }
 
-        let config = Self::detect_java()
-            .ok_or_else(|| Error::TrustStore("Java not found".to_string()))?;
+        let config =
+            Self::detect_java().ok_or_else(|| Error::TrustStore("Java not found".to_string()))?;
 
-        let cacerts_str = config.cacerts_path.to_str()
+        let cacerts_str = config
+            .cacerts_path
+            .to_str()
             .ok_or_else(|| Error::TrustStore("Invalid cacerts path".to_string()))?;
 
-        let cert_path_str = self.cert_path.to_str()
+        let cert_path_str = self
+            .cert_path
+            .to_str()
             .ok_or_else(|| Error::TrustStore("Invalid certificate path".to_string()))?;
 
         let args = vec![
             "-importcert",
             "-noprompt",
-            "-keystore", cacerts_str,
-            "-storepass", "changeit",
-            "-file", cert_path_str,
-            "-alias", &self.unique_name,
+            "-keystore",
+            cacerts_str,
+            "-storepass",
+            "changeit",
+            "-file",
+            cert_path_str,
+            "-alias",
+            &self.unique_name,
         ];
 
         let output = Self::exec_keytool(&args)?;
@@ -216,9 +229,12 @@ impl TrustStore for JavaTrustStore {
 
         let args = vec![
             "-delete",
-            "-alias", &self.unique_name,
-            "-keystore", cacerts_str,
-            "-storepass", "changeit",
+            "-alias",
+            &self.unique_name,
+            "-keystore",
+            cacerts_str,
+            "-storepass",
+            "changeit",
         ];
 
         let output = Self::exec_keytool(&args)?;

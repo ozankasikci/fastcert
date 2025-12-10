@@ -1,7 +1,7 @@
 //! NSS/Firefox trust store
 
-use crate::{Error, Result};
 use super::TrustStore;
+use crate::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -41,7 +41,10 @@ impl NssTrustStore {
     fn get_firefox_profile_globs() -> Vec<String> {
         let mut globs = Vec::new();
         if let Some(home) = dirs::home_dir() {
-            globs.push(format!("{}/Library/Application Support/Firefox/Profiles/*", home.display()));
+            globs.push(format!(
+                "{}/Library/Application Support/Firefox/Profiles/*",
+                home.display()
+            ));
         }
         globs
     }
@@ -51,7 +54,10 @@ impl NssTrustStore {
         let mut globs = Vec::new();
         if let Some(home) = dirs::home_dir() {
             globs.push(format!("{}/.mozilla/firefox/*", home.display()));
-            globs.push(format!("{}/snap/firefox/common/.mozilla/firefox/*", home.display()));
+            globs.push(format!(
+                "{}/snap/firefox/common/.mozilla/firefox/*",
+                home.display()
+            ));
         }
         globs
     }
@@ -60,7 +66,10 @@ impl NssTrustStore {
     fn get_firefox_profile_globs() -> Vec<String> {
         let mut globs = Vec::new();
         if let Ok(profile) = std::env::var("USERPROFILE") {
-            globs.push(format!("{}\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\*", profile));
+            globs.push(format!(
+                "{}\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\*",
+                profile
+            ));
         }
         globs
     }
@@ -148,12 +157,13 @@ impl NssTrustStore {
         {
             // Check if certutil is in PATH
             if let Ok(output) = Command::new("which").arg("certutil").output()
-                && output.status.success() {
-                    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                    if !path.is_empty() {
-                        return Some(PathBuf::from(path));
-                    }
+                && output.status.success()
+            {
+                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !path.is_empty() {
+                    return Some(PathBuf::from(path));
                 }
+            }
 
             // Check default Homebrew path
             let homebrew_path = PathBuf::from("/usr/local/opt/nss/bin/certutil");
@@ -163,13 +173,14 @@ impl NssTrustStore {
 
             // Try brew --prefix nss
             if let Ok(output) = Command::new("brew").args(["--prefix", "nss"]).output()
-                && output.status.success() {
-                    let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                    let certutil_path = PathBuf::from(prefix).join("bin/certutil");
-                    if certutil_path.exists() {
-                        return Some(certutil_path);
-                    }
+                && output.status.success()
+            {
+                let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let certutil_path = PathBuf::from(prefix).join("bin/certutil");
+                if certutil_path.exists() {
+                    return Some(certutil_path);
                 }
+            }
         }
 
         #[cfg(target_os = "linux")]
@@ -228,7 +239,12 @@ impl NssTrustStore {
                         .arg(&certutil_path)
                         .args(args)
                         .output()
-                        .map_err(|e| Error::CommandFailed(format!("Failed to execute certutil with sudo: {}", e)))?;
+                        .map_err(|e| {
+                            Error::CommandFailed(format!(
+                                "Failed to execute certutil with sudo: {}",
+                                e
+                            ))
+                        })?;
                     return Ok(output);
                 }
             }
@@ -253,12 +269,7 @@ impl TrustStore for NssTrustStore {
         for (db_type, profile_path) in profiles {
             let db_arg = format!("{}:{}", db_type, profile_path.display());
 
-            let args = vec![
-                "-V",
-                "-d", &db_arg,
-                "-u", "L",
-                "-n", &self.unique_name,
-            ];
+            let args = vec!["-V", "-d", &db_arg, "-u", "L", "-n", &self.unique_name];
 
             match Self::exec_certutil(&args) {
                 Ok(output) => {
@@ -277,17 +288,21 @@ impl TrustStore for NssTrustStore {
 
     fn install(&self) -> Result<()> {
         if !Self::has_certutil() {
-            return Err(Error::TrustStore("certutil not found. Please install NSS tools.".to_string()));
+            return Err(Error::TrustStore(
+                "certutil not found. Please install NSS tools.".to_string(),
+            ));
         }
 
         let profiles = Self::find_nss_profiles();
         if profiles.is_empty() {
             return Err(Error::TrustStore(
-                "No NSS security databases found. Please start Firefox at least once.".to_string()
+                "No NSS security databases found. Please start Firefox at least once.".to_string(),
             ));
         }
 
-        let cert_path_str = self.cert_path.to_str()
+        let cert_path_str = self
+            .cert_path
+            .to_str()
             .ok_or_else(|| Error::TrustStore("Invalid certificate path".to_string()))?;
 
         for (db_type, profile_path) in &profiles {
@@ -295,10 +310,14 @@ impl TrustStore for NssTrustStore {
 
             let args = vec![
                 "-A",
-                "-d", &db_arg,
-                "-t", "C,,",
-                "-n", &self.unique_name,
-                "-i", cert_path_str,
+                "-d",
+                &db_arg,
+                "-t",
+                "C,,",
+                "-n",
+                &self.unique_name,
+                "-i",
+                cert_path_str,
             ];
 
             let output = Self::exec_certutil(&args)?;
@@ -315,7 +334,8 @@ impl TrustStore for NssTrustStore {
         // Verify installation
         if !self.check()? {
             return Err(Error::TrustStore(
-                "Certificate installation verification failed. Please report this issue.".to_string()
+                "Certificate installation verification failed. Please report this issue."
+                    .to_string(),
             ));
         }
 
@@ -338,12 +358,7 @@ impl TrustStore for NssTrustStore {
             let db_arg = format!("{}:{}", db_type, profile_path.display());
 
             // First check if the certificate exists in this profile
-            let check_args = vec![
-                "-V",
-                "-d", &db_arg,
-                "-u", "L",
-                "-n", &self.unique_name,
-            ];
+            let check_args = vec!["-V", "-d", &db_arg, "-u", "L", "-n", &self.unique_name];
 
             match Self::exec_certutil(&check_args) {
                 Ok(output) => {
@@ -359,11 +374,7 @@ impl TrustStore for NssTrustStore {
             }
 
             // Certificate exists, delete it
-            let delete_args = vec![
-                "-D",
-                "-d", &db_arg,
-                "-n", &self.unique_name,
-            ];
+            let delete_args = vec!["-D", "-d", &db_arg, "-n", &self.unique_name];
 
             let output = Self::exec_certutil(&delete_args)?;
             if !output.status.success() {

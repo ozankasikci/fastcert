@@ -8,7 +8,9 @@ pub enum Error {
     #[error("Certificate generation error: {0}")]
     Certificate(String),
 
-    #[error("CA root directory not found. Set CAROOT environment variable or ensure default location is accessible")]
+    #[error(
+        "CA root directory not found. Set CAROOT environment variable or ensure default location is accessible"
+    )]
     CARootNotFound,
 
     #[error("CA private key is missing. The CA may not have been properly initialized")]
@@ -17,7 +19,9 @@ pub enum Error {
     #[error("Trust store operation failed: {0}")]
     TrustStore(String),
 
-    #[error("Invalid hostname '{0}'. Hostnames must contain only alphanumeric characters, hyphens, underscores, and dots")]
+    #[error(
+        "Invalid hostname '{0}'. Hostnames must contain only alphanumeric characters, hyphens, underscores, and dots"
+    )]
     InvalidHostname(String),
 
     #[error("Command execution failed: {0}")]

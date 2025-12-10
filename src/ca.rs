@@ -1,12 +1,12 @@
 //! Certificate Authority management
 
 use crate::{Error, Result};
-use std::path::{Path, PathBuf};
+use colored::*;
+use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa};
 use std::fs::{self, File};
 use std::io::Write;
-use rcgen::{Certificate, CertificateParams, DistinguishedName, DnType, IsCa, BasicConstraints};
-use time::{OffsetDateTime, Duration};
-use colored::*;
+use std::path::{Path, PathBuf};
+use time::{Duration, OffsetDateTime};
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -56,7 +56,10 @@ fn get_caroot_path() -> Result<PathBuf> {
     #[cfg(target_os = "macos")]
     {
         if let Some(home) = dirs::home_dir() {
-            return Ok(home.join("Library").join("Application Support").join("rscert"));
+            return Ok(home
+                .join("Library")
+                .join("Application Support")
+                .join("rscert"));
         }
     }
 
@@ -74,7 +77,9 @@ fn get_caroot_path() -> Result<PathBuf> {
         }
     }
 
-    Err(Error::Certificate("Could not determine CAROOT directory".to_string()))
+    Err(Error::Certificate(
+        "Could not determine CAROOT directory".to_string(),
+    ))
 }
 
 /// Install the CA certificate into the system trust store.
@@ -120,7 +125,10 @@ pub fn install() -> Result<()> {
     #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         println!("Note: System trust store installation not yet implemented for this platform.");
-        println!("You may need to manually import the CA certificate from: {}", ca.cert_path().display());
+        println!(
+            "You may need to manually import the CA certificate from: {}",
+            ca.cert_path().display()
+        );
     }
 
     Ok(())
@@ -168,7 +176,9 @@ pub fn uninstall() -> Result<()> {
     #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         println!("Note: System trust store uninstallation not yet implemented for this platform.");
-        println!("You may need to manually remove the CA certificate from your system trust store.");
+        println!(
+            "You may need to manually remove the CA certificate from your system trust store."
+        );
     }
 
     Ok(())
@@ -305,8 +315,9 @@ impl CertificateAuthority {
         let cert = Certificate::from_params(params)
             .map_err(|e| Error::Certificate(format!("Failed to generate CA certificate: {}", e)))?;
 
-        let cert_pem = cert.serialize_pem()
-            .map_err(|e| Error::Certificate(format!("Failed to serialize CA certificate to PEM: {}", e)))?;
+        let cert_pem = cert.serialize_pem().map_err(|e| {
+            Error::Certificate(format!("Failed to serialize CA certificate to PEM: {}", e))
+        })?;
 
         self.cert = Some(cert);
         self.cert_pem = Some(cert_pem);
@@ -331,32 +342,57 @@ impl CertificateAuthority {
     /// - File creation or writing fails
     /// - Permission setting fails (Unix)
     pub fn save(&self) -> Result<()> {
-        let cert_pem = self.cert_pem.as_ref()
+        let cert_pem = self
+            .cert_pem
+            .as_ref()
             .ok_or_else(|| Error::Certificate("No certificate available to save".to_string()))?;
 
-        let cert = self.cert.as_ref()
+        let cert = self
+            .cert
+            .as_ref()
             .ok_or_else(|| Error::Certificate("No certificate available to save".to_string()))?;
 
         // Save certificate
         let cert_path = self.cert_path();
-        let mut file = File::create(&cert_path)
-            .map_err(|e| Error::Certificate(format!("Failed to create certificate file at {:?}: {}", cert_path, e)))?;
-        file.write_all(cert_pem.as_bytes())
-            .map_err(|e| Error::Certificate(format!("Failed to write certificate to {:?}: {}", cert_path, e)))?;
+        let mut file = File::create(&cert_path).map_err(|e| {
+            Error::Certificate(format!(
+                "Failed to create certificate file at {:?}: {}",
+                cert_path, e
+            ))
+        })?;
+        file.write_all(cert_pem.as_bytes()).map_err(|e| {
+            Error::Certificate(format!(
+                "Failed to write certificate to {:?}: {}",
+                cert_path, e
+            ))
+        })?;
         #[cfg(unix)]
-        fs::set_permissions(&cert_path, fs::Permissions::from_mode(0o644))
-            .map_err(|e| Error::Certificate(format!("Failed to set permissions on {:?}: {}", cert_path, e)))?;
+        fs::set_permissions(&cert_path, fs::Permissions::from_mode(0o644)).map_err(|e| {
+            Error::Certificate(format!(
+                "Failed to set permissions on {:?}: {}",
+                cert_path, e
+            ))
+        })?;
 
         // Save private key
         let key_pem = cert.serialize_private_key_pem();
         let key_path = self.key_path();
-        let mut file = File::create(&key_path)
-            .map_err(|e| Error::Certificate(format!("Failed to create key file at {:?}: {}", key_path, e)))?;
-        file.write_all(key_pem.as_bytes())
-            .map_err(|e| Error::Certificate(format!("Failed to write key to {:?}: {}", key_path, e)))?;
+        let mut file = File::create(&key_path).map_err(|e| {
+            Error::Certificate(format!(
+                "Failed to create key file at {:?}: {}",
+                key_path, e
+            ))
+        })?;
+        file.write_all(key_pem.as_bytes()).map_err(|e| {
+            Error::Certificate(format!("Failed to write key to {:?}: {}", key_path, e))
+        })?;
         #[cfg(unix)]
-        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o400))
-            .map_err(|e| Error::Certificate(format!("Failed to set permissions on {:?}: {}", key_path, e)))?;
+        fs::set_permissions(&key_path, fs::Permissions::from_mode(0o400)).map_err(|e| {
+            Error::Certificate(format!(
+                "Failed to set permissions on {:?}: {}",
+                key_path, e
+            ))
+        })?;
 
         Ok(())
     }
@@ -643,7 +679,10 @@ mod tests {
         assert!(ca.key_exists(), "CA key should be created");
 
         let cert_pem = fs::read_to_string(&ca.cert_path()).unwrap();
-        assert!(cert_pem.contains("BEGIN CERTIFICATE"), "Certificate should be in PEM format");
+        assert!(
+            cert_pem.contains("BEGIN CERTIFICATE"),
+            "Certificate should be in PEM format"
+        );
 
         unsafe {
             std::env::remove_var("CAROOT");
@@ -658,11 +697,17 @@ mod tests {
         let mut ca = CertificateAuthority::new(temp_dir.path().to_path_buf());
         ca.load_or_create().unwrap();
 
-        assert!(ca.cert_exists(), "CA certificate should exist before uninstall");
+        assert!(
+            ca.cert_exists(),
+            "CA certificate should exist before uninstall"
+        );
         assert!(ca.key_exists(), "CA key should exist before uninstall");
 
         let cert_exists_after = ca.cert_exists();
-        assert!(cert_exists_after, "Certificate should still exist after uninstall call");
+        assert!(
+            cert_exists_after,
+            "Certificate should still exist after uninstall call"
+        );
     }
 
     #[test]
@@ -685,7 +730,10 @@ mod tests {
         ca2.load_or_create().unwrap();
 
         let serial2 = ca2.get_serial_number().unwrap();
-        assert_ne!(serial, serial2, "Different CAs should have different serials");
+        assert_ne!(
+            serial, serial2,
+            "Different CAs should have different serials"
+        );
 
         // Check that serial1 is unique against ca2's path
         assert!(is_serial_unique(&serial, temp_dir2.path()).unwrap());

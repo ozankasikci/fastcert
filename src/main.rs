@@ -201,10 +201,7 @@ fn main() -> Result<()> {
 
     // Handle CSR-based certificate generation
     if let Some(csr_path) = cli.csr {
-        rscert::cert::generate_from_csr(
-            &csr_path,
-            cli.cert_file.as_deref(),
-        )?;
+        rscert::cert::generate_from_csr(&csr_path, cli.cert_file.as_deref())?;
         return Ok(());
     }
 

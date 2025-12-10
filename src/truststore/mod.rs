@@ -10,8 +10,8 @@
 //! variable (comma-separated list of: system, nss, java).
 
 use crate::Result;
-use std::path::Path;
 use std::env;
+use std::path::Path;
 
 /// Parse TRUST_STORES environment variable to determine which stores to use.
 ///
@@ -91,8 +91,8 @@ pub mod linux;
 #[cfg(target_os = "windows")]
 pub mod windows;
 
-pub mod nss;
 pub mod java;
+pub mod nss;
 
 /// Common interface for trust store operations.
 ///
@@ -134,7 +134,10 @@ pub fn install_macos(cert_path: &Path) -> Result<()> {
     let unique_name = ca.unique_name()?;
 
     // Also install to NSS/Firefox if available and enabled
-    if is_store_enabled("nss") && nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
+    if is_store_enabled("nss")
+        && nss::NssTrustStore::is_available()
+        && nss::NssTrustStore::has_certutil()
+    {
         eprintln!("Installing to Firefox/NSS trust store...");
         let nss_store = nss::NssTrustStore::new(cert_path, unique_name.clone());
         if let Err(e) = nss_store.install() {
@@ -145,11 +148,17 @@ pub fn install_macos(cert_path: &Path) -> Result<()> {
     }
 
     // Also install to Java keystore if available and enabled
-    if is_store_enabled("java") && java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
+    if is_store_enabled("java")
+        && java::JavaTrustStore::is_available()
+        && java::JavaTrustStore::has_keytool()
+    {
         eprintln!("Installing to Java trust store...");
         let java_store = java::JavaTrustStore::new(cert_path, unique_name.clone());
         if let Err(e) = java_store.install() {
-            eprintln!("Warning: Failed to install certificate in Java keystore: {}", e);
+            eprintln!(
+                "Warning: Failed to install certificate in Java keystore: {}",
+                e
+            );
         } else {
             println!("The local CA is now installed in Java trust store!");
         }
@@ -181,14 +190,20 @@ pub fn uninstall_macos(cert_path: &Path) -> Result<()> {
         if nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
             let nss_store = nss::NssTrustStore::new(cert_path, unique_name.clone());
             if let Err(e) = nss_store.uninstall() {
-                eprintln!("Warning: Failed to uninstall certificate from Firefox: {}", e);
+                eprintln!(
+                    "Warning: Failed to uninstall certificate from Firefox: {}",
+                    e
+                );
             }
         }
 
         if java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
             let java_store = java::JavaTrustStore::new(cert_path, unique_name.clone());
             if let Err(e) = java_store.uninstall() {
-                eprintln!("Warning: Failed to uninstall certificate from Java keystore: {}", e);
+                eprintln!(
+                    "Warning: Failed to uninstall certificate from Java keystore: {}",
+                    e
+                );
             }
         }
     }
@@ -221,22 +236,36 @@ pub fn install_linux(cert_path: &Path) -> Result<()> {
     let unique_name = ca.unique_name()?;
 
     // Also install to NSS/Firefox if available and enabled
-    if is_store_enabled("nss") && nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
+    if is_store_enabled("nss")
+        && nss::NssTrustStore::is_available()
+        && nss::NssTrustStore::has_certutil()
+    {
         eprintln!("Installing to Firefox/Chromium trust store...");
         let nss_store = nss::NssTrustStore::new(cert_path, unique_name.clone());
         if let Err(e) = nss_store.install() {
-            eprintln!("Warning: Failed to install certificate in Firefox/Chromium: {}", e);
+            eprintln!(
+                "Warning: Failed to install certificate in Firefox/Chromium: {}",
+                e
+            );
         } else {
-            println!("The local CA is now installed in the Firefox and/or Chrome/Chromium trust store!");
+            println!(
+                "The local CA is now installed in the Firefox and/or Chrome/Chromium trust store!"
+            );
         }
     }
 
     // Also install to Java keystore if available and enabled
-    if is_store_enabled("java") && java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
+    if is_store_enabled("java")
+        && java::JavaTrustStore::is_available()
+        && java::JavaTrustStore::has_keytool()
+    {
         eprintln!("Installing to Java trust store...");
         let java_store = java::JavaTrustStore::new(cert_path, unique_name.clone());
         if let Err(e) = java_store.install() {
-            eprintln!("Warning: Failed to install certificate in Java keystore: {}", e);
+            eprintln!(
+                "Warning: Failed to install certificate in Java keystore: {}",
+                e
+            );
         } else {
             println!("The local CA is now installed in Java trust store!");
         }
@@ -268,14 +297,20 @@ pub fn uninstall_linux(cert_path: &Path) -> Result<()> {
         if nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
             let nss_store = nss::NssTrustStore::new(cert_path, unique_name.clone());
             if let Err(e) = nss_store.uninstall() {
-                eprintln!("Warning: Failed to uninstall certificate from Firefox/Chromium: {}", e);
+                eprintln!(
+                    "Warning: Failed to uninstall certificate from Firefox/Chromium: {}",
+                    e
+                );
             }
         }
 
         if java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
             let java_store = java::JavaTrustStore::new(cert_path, unique_name.clone());
             if let Err(e) = java_store.uninstall() {
-                eprintln!("Warning: Failed to uninstall certificate from Java keystore: {}", e);
+                eprintln!(
+                    "Warning: Failed to uninstall certificate from Java keystore: {}",
+                    e
+                );
             }
         }
     }
@@ -308,7 +343,10 @@ pub fn install_windows(cert_path: &Path) -> Result<()> {
     let unique_name = ca.unique_name()?;
 
     // Also install to NSS/Firefox if available and enabled
-    if is_store_enabled("nss") && nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
+    if is_store_enabled("nss")
+        && nss::NssTrustStore::is_available()
+        && nss::NssTrustStore::has_certutil()
+    {
         eprintln!("Installing to Firefox trust store...");
         let nss_store = nss::NssTrustStore::new(cert_path, unique_name.clone());
         if let Err(e) = nss_store.install() {
@@ -319,11 +357,17 @@ pub fn install_windows(cert_path: &Path) -> Result<()> {
     }
 
     // Also install to Java keystore if available and enabled
-    if is_store_enabled("java") && java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
+    if is_store_enabled("java")
+        && java::JavaTrustStore::is_available()
+        && java::JavaTrustStore::has_keytool()
+    {
         eprintln!("Installing to Java trust store...");
         let java_store = java::JavaTrustStore::new(cert_path, unique_name.clone());
         if let Err(e) = java_store.install() {
-            eprintln!("Warning: Failed to install certificate in Java keystore: {}", e);
+            eprintln!(
+                "Warning: Failed to install certificate in Java keystore: {}",
+                e
+            );
         } else {
             println!("The local CA is now installed in Java trust store!");
         }
@@ -355,14 +399,20 @@ pub fn uninstall_windows(cert_path: &Path) -> Result<()> {
         if nss::NssTrustStore::is_available() && nss::NssTrustStore::has_certutil() {
             let nss_store = nss::NssTrustStore::new(cert_path, unique_name.clone());
             if let Err(e) = nss_store.uninstall() {
-                eprintln!("Warning: Failed to uninstall certificate from Firefox: {}", e);
+                eprintln!(
+                    "Warning: Failed to uninstall certificate from Firefox: {}",
+                    e
+                );
             }
         }
 
         if java::JavaTrustStore::is_available() && java::JavaTrustStore::has_keytool() {
             let java_store = java::JavaTrustStore::new(cert_path, unique_name.clone());
             if let Err(e) = java_store.uninstall() {
-                eprintln!("Warning: Failed to uninstall certificate from Java keystore: {}", e);
+                eprintln!(
+                    "Warning: Failed to uninstall certificate from Java keystore: {}",
+                    e
+                );
             }
         }
     }
@@ -382,7 +432,10 @@ mod tests {
         assert!(!stores.is_empty(), "Should find at least one trust store");
 
         // Check that system store is present
-        assert!(stores.iter().any(|s| s.contains("system")), "System store should be available");
+        assert!(
+            stores.iter().any(|s| s.contains("system")),
+            "System store should be available"
+        );
     }
 
     #[test]

@@ -1,7 +1,7 @@
 //! macOS Keychain trust store
 
-use crate::{Error, Result};
 use super::TrustStore;
+use crate::{Error, Result};
 use std::path::Path;
 use std::process::Command;
 
@@ -49,14 +49,9 @@ impl MacOSTrustStore {
     /// Run a security command, optionally with sudo
     fn run_security_command(&self, args: &[&str], with_sudo: bool) -> Result<std::process::Output> {
         let output = if with_sudo {
-            Command::new("sudo")
-                .arg("security")
-                .args(args)
-                .output()
+            Command::new("sudo").arg("security").args(args).output()
         } else {
-            Command::new("security")
-                .args(args)
-                .output()
+            Command::new("security").args(args).output()
         };
 
         output.map_err(|e| Error::TrustStore(format!("Failed to run security command: {}", e)))
@@ -65,7 +60,13 @@ impl MacOSTrustStore {
     /// Check if the CA certificate is already installed in the system keychain
     fn is_installed(&self) -> Result<bool> {
         let output = self.run_security_command(
-            &["find-certificate", "-a", "-c", "rscert", "/Library/Keychains/System.keychain"],
+            &[
+                "find-certificate",
+                "-a",
+                "-c",
+                "rscert",
+                "/Library/Keychains/System.keychain",
+            ],
             false,
         )?;
 
@@ -109,7 +110,7 @@ impl TrustStore for MacOSTrustStore {
                 ));
             } else if stderr.contains("The authorization was denied") {
                 return Err(Error::TrustStore(
-                    "Failed to add certificate: Administrator authorization was denied".to_string()
+                    "Failed to add certificate: Administrator authorization was denied".to_string(),
                 ));
             }
             return Err(Error::TrustStore(format!(
@@ -133,14 +134,8 @@ impl TrustStore for MacOSTrustStore {
         println!("Note: This will require administrator privileges.");
 
         // Remove the certificate from the system keychain
-        let output = self.run_security_command(
-            &[
-                "remove-trusted-cert",
-                "-d",
-                &self.cert_path,
-            ],
-            true,
-        )?;
+        let output =
+            self.run_security_command(&["remove-trusted-cert", "-d", &self.cert_path], true)?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -150,7 +145,8 @@ impl TrustStore for MacOSTrustStore {
                 ));
             } else if stderr.contains("The authorization was denied") {
                 return Err(Error::TrustStore(
-                    "Failed to remove certificate: Administrator authorization was denied".to_string()
+                    "Failed to remove certificate: Administrator authorization was denied"
+                        .to_string(),
                 ));
             } else if stderr.contains("The specified item could not be found") {
                 println!("The local CA certificate was not found in the macOS keychain.");

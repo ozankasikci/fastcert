@@ -1,7 +1,7 @@
 //! Linux trust store
 
-use crate::{Error, Result};
 use super::TrustStore;
+use crate::{Error, Result};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -131,8 +131,13 @@ impl TrustStore for LinuxTrustStore {
     fn install(&self) -> Result<()> {
         // Check if distribution is supported
         if self.distro == LinuxDistro::Unknown {
-            println!("Installing to the system store is not yet supported on this Linux distribution.");
-            println!("You can manually install the root certificate at {:?}", self.cert_path);
+            println!(
+                "Installing to the system store is not yet supported on this Linux distribution."
+            );
+            println!(
+                "You can manually install the root certificate at {:?}",
+                self.cert_path
+            );
             return Ok(());
         }
 
@@ -146,8 +151,9 @@ impl TrustStore for LinuxTrustStore {
         println!("Note: This will require administrator privileges.");
 
         // Get the target path
-        let sys_path = self.system_cert_path()
-            .ok_or_else(|| Error::TrustStore("Failed to determine system certificate path".to_string()))?;
+        let sys_path = self.system_cert_path().ok_or_else(|| {
+            Error::TrustStore("Failed to determine system certificate path".to_string())
+        })?;
 
         // Read the certificate
         let cert_content = std::fs::read(&self.cert_path)
@@ -164,7 +170,10 @@ impl TrustStore for LinuxTrustStore {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(Error::TrustStore(format!("Failed to copy certificate to system trust store: {}", stderr)));
+            return Err(Error::TrustStore(format!(
+                "Failed to copy certificate to system trust store: {}",
+                stderr
+            )));
         }
 
         // Write the certificate content
@@ -178,15 +187,19 @@ impl TrustStore for LinuxTrustStore {
 
         if let Some(mut stdin) = child.stdin.take() {
             use std::io::Write;
-            stdin.write_all(&cert_content)
+            stdin
+                .write_all(&cert_content)
                 .map_err(|e| Error::TrustStore(format!("Failed to write certificate: {}", e)))?;
         }
 
-        let status = child.wait()
+        let status = child
+            .wait()
             .map_err(|e| Error::CommandFailed(format!("Failed to wait for tee command: {}", e)))?;
 
         if !status.success() {
-            return Err(Error::TrustStore("Failed to copy certificate to system trust store".to_string()));
+            return Err(Error::TrustStore(
+                "Failed to copy certificate to system trust store".to_string(),
+            ));
         }
 
         // Run the update command for the distribution
@@ -223,8 +236,9 @@ impl TrustStore for LinuxTrustStore {
         println!("Note: This will require administrator privileges.");
 
         // Get the target path
-        let sys_path = self.system_cert_path()
-            .ok_or_else(|| Error::TrustStore("Failed to determine system certificate path".to_string()))?;
+        let sys_path = self.system_cert_path().ok_or_else(|| {
+            Error::TrustStore("Failed to determine system certificate path".to_string())
+        })?;
 
         // Remove the certificate file
         let sys_path_str = sys_path.to_string_lossy();

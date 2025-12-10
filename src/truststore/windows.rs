@@ -1,25 +1,29 @@
 //! Windows trust store
 
-use crate::{Error, Result};
 use super::TrustStore;
+use crate::{Error, Result};
 use std::path::Path;
 
 #[cfg(target_os = "windows")]
 use {
     std::ptr,
+    windows::Win32::Foundation::GetLastError,
     windows::Win32::Security::Cryptography::{
+        CERT_CONTEXT, CERT_STORE_ADD_REPLACE_EXISTING, CERT_STORE_PROV_SYSTEM_W,
         CertAddEncodedCertificateToStore, CertCloseStore, CertDeleteCertificateFromStore,
         CertDuplicateCertificateContext, CertEnumCertificatesInStore, CertOpenSystemStoreW,
-        CERT_CONTEXT, CERT_STORE_ADD_REPLACE_EXISTING, CERT_STORE_PROV_SYSTEM_W,
         HCERTSTORE, PKCS_7_ASN_ENCODING, X509_ASN_ENCODING,
     },
     windows::core::PCWSTR,
-    windows::Win32::Foundation::GetLastError,
 };
 
 #[cfg(target_os = "windows")]
 fn windows_error_string(error: windows::core::Error) -> String {
-    format!("Windows error 0x{:08X}: {}", error.code().0, error.message())
+    format!(
+        "Windows error 0x{:08X}: {}",
+        error.code().0,
+        error.message()
+    )
 }
 
 pub struct WindowsTrustStore {
@@ -40,7 +44,9 @@ impl WindowsTrustStore {
 
     #[cfg(not(target_os = "windows"))]
     fn open_root_store(&self) -> Result<WindowsRootStore> {
-        Err(Error::TrustStore("Windows trust store is only available on Windows".to_string()))
+        Err(Error::TrustStore(
+            "Windows trust store is only available on Windows".to_string(),
+        ))
     }
 
     fn load_cert_der(&self) -> Result<Vec<u8>> {
@@ -51,7 +57,9 @@ impl WindowsTrustStore {
             .map_err(|e| Error::TrustStore(format!("Failed to parse PEM: {}", e)))?;
 
         if pem.tag() != "CERTIFICATE" {
-            return Err(Error::TrustStore("Invalid PEM type, expected CERTIFICATE".to_string()));
+            return Err(Error::TrustStore(
+                "Invalid PEM type, expected CERTIFICATE".to_string(),
+            ));
         }
 
         Ok(pem.contents().to_vec())
@@ -80,11 +88,11 @@ impl WindowsRootStore {
     fn open() -> Result<Self> {
         unsafe {
             let store_name: Vec<u16> = "ROOT\0".encode_utf16().collect();
-            let handle = CertOpenSystemStoreW(
-                None,
-                PCWSTR(store_name.as_ptr()),
-            ).map_err(|e| {
-                Error::TrustStore(format!("Failed to open Windows root store: {}", windows_error_string(e)))
+            let handle = CertOpenSystemStoreW(None, PCWSTR(store_name.as_ptr())).map_err(|e| {
+                Error::TrustStore(format!(
+                    "Failed to open Windows root store: {}",
+                    windows_error_string(e)
+                ))
             })?;
 
             if handle.is_invalid() {
@@ -133,9 +141,13 @@ impl WindowsRootStore {
                 cert_der,
                 CERT_STORE_ADD_REPLACE_EXISTING,
                 None,
-            ).map_err(|e| {
+            )
+            .map_err(|e| {
                 let err_msg = windows_error_string(e);
-                if err_msg.contains("0x80092003") || err_msg.contains("access") || err_msg.contains("denied") {
+                if err_msg.contains("0x80092003")
+                    || err_msg.contains("access")
+                    || err_msg.contains("denied")
+                {
                     Error::TrustStore(format!(
                         "Access denied when adding certificate. Please run as administrator: {}",
                         err_msg
@@ -146,7 +158,9 @@ impl WindowsRootStore {
             })?;
 
             if !result.as_bool() {
-                return Err(Error::TrustStore("Failed to add certificate to store: Operation returned failure".to_string()));
+                return Err(Error::TrustStore(
+                    "Failed to add certificate to store: Operation returned failure".to_string(),
+                ));
             }
 
             Ok(())
@@ -173,14 +187,19 @@ impl WindowsRootStore {
 
                 if stored_cert == cert_der {
                     // Duplicate the context so it doesn't stop enumeration when we delete it
-                    let dup_cert = CertDuplicateCertificateContext(Some(prev_cert))
-                        .map_err(|e| Error::TrustStore(format!(
-                            "Failed to duplicate certificate context: {}",
-                            windows_error_string(e)
-                        )))?;
+                    let dup_cert =
+                        CertDuplicateCertificateContext(Some(prev_cert)).map_err(|e| {
+                            Error::TrustStore(format!(
+                                "Failed to duplicate certificate context: {}",
+                                windows_error_string(e)
+                            ))
+                        })?;
 
                     if dup_cert.is_null() {
-                        return Err(Error::TrustStore("Failed to duplicate certificate context: Null pointer returned".to_string()));
+                        return Err(Error::TrustStore(
+                            "Failed to duplicate certificate context: Null pointer returned"
+                                .to_string(),
+                        ));
                     }
 
                     CertDeleteCertificateFromStore(dup_cert).map_err(|e| {
@@ -224,7 +243,9 @@ impl TrustStore for WindowsTrustStore {
     #[cfg(target_os = "windows")]
     fn install(&self) -> Result<()> {
         if self.is_installed()? {
-            println!("The local CA certificate is already installed in the Windows certificate store.");
+            println!(
+                "The local CA certificate is already installed in the Windows certificate store."
+            );
             return Ok(());
         }
 
@@ -241,7 +262,9 @@ impl TrustStore for WindowsTrustStore {
 
     #[cfg(not(target_os = "windows"))]
     fn install(&self) -> Result<()> {
-        Err(Error::TrustStore("Windows trust store is only available on Windows".to_string()))
+        Err(Error::TrustStore(
+            "Windows trust store is only available on Windows".to_string(),
+        ))
     }
 
     #[cfg(target_os = "windows")]
@@ -259,7 +282,9 @@ impl TrustStore for WindowsTrustStore {
         let deleted = store.delete_cert(&cert_der)?;
 
         if !deleted {
-            return Err(Error::TrustStore("Failed to find and remove certificate".to_string()));
+            return Err(Error::TrustStore(
+                "Failed to find and remove certificate".to_string(),
+            ));
         }
 
         println!("The local CA certificate has been removed from the Windows certificate store.");
@@ -268,6 +293,8 @@ impl TrustStore for WindowsTrustStore {
 
     #[cfg(not(target_os = "windows"))]
     fn uninstall(&self) -> Result<()> {
-        Err(Error::TrustStore("Windows trust store is only available on Windows".to_string()))
+        Err(Error::TrustStore(
+            "Windows trust store is only available on Windows".to_string(),
+        ))
     }
 }

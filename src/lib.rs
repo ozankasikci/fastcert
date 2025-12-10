@@ -2,11 +2,11 @@
 //!
 //! This is a Rust implementation of mkcert.
 
-pub mod error;
 pub mod ca;
 pub mod cert;
-pub mod truststore;
+pub mod error;
 pub mod fileutil;
+pub mod truststore;
 
 pub use error::{Error, Result};
 
