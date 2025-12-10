@@ -129,6 +129,7 @@ fn process_host_to_san(host: &str) -> Result<SanType> {
     match host_type {
         HostType::DnsName(name) => {
             validate_hostname(&name)?;
+            validate_wildcard_depth(&name)?;
             check_wildcard_warning(&name);
             Ok(SanType::DnsName(name))
         }
@@ -149,6 +150,26 @@ pub fn build_san_list(hosts: &[String]) -> Result<Vec<SanType>> {
     hosts.iter()
         .map(|host| process_host_to_san(host))
         .collect()
+}
+
+/// Validate wildcard depth (only one level deep is allowed)
+pub fn validate_wildcard_depth(name: &str) -> Result<()> {
+    if name.starts_with("*.") {
+        // Count the number of wildcard components
+        let wildcard_count = name.matches("*").count();
+        if wildcard_count > 1 {
+            return Err(Error::InvalidHostname(format!("Multiple wildcards not allowed: {}", name)));
+        }
+
+        // Ensure wildcard is only at the beginning
+        if name[2..].contains('*') {
+            return Err(Error::InvalidHostname(format!("Wildcard must be at the beginning: {}", name)));
+        }
+    } else if name.contains('*') {
+        return Err(Error::InvalidHostname(format!("Wildcard must be at the beginning: {}", name)));
+    }
+
+    Ok(())
 }
 
 /// Check for wildcard certificates and log warnings
@@ -1105,5 +1126,14 @@ mod tests {
         // Should contain common date elements
         assert!(!formatted.is_empty());
         assert!(formatted.len() > 10);
+    }
+
+    #[test]
+    fn test_wildcard_depth_validation() {
+        assert!(validate_wildcard_depth("*.example.com").is_ok());
+        assert!(validate_wildcard_depth("example.com").is_ok());
+        assert!(validate_wildcard_depth("*.*.example.com").is_err());
+        assert!(validate_wildcard_depth("*example.com").is_err());
+        assert!(validate_wildcard_depth("example.*.com").is_err());
     }
 }
