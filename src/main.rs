@@ -1,3 +1,13 @@
+//! rscert - A simple zero-config tool to make locally-trusted development certificates.
+//!
+//! This is the command-line interface for rscert, providing certificate generation
+//! and CA management functionality. The main function parses command-line arguments
+//! and dispatches to the appropriate modules for:
+//! - CA installation and uninstallation
+//! - Certificate generation for domains, IPs, emails, and URIs
+//! - CSR-based certificate generation
+//! - PKCS#12 bundle creation
+
 use clap::Parser;
 use rscert::Result;
 
@@ -29,6 +39,11 @@ ENVIRONMENT:
         Firefox). Autodetected by default.
 ";
 
+/// Command-line interface structure.
+///
+/// Defines all command-line options and flags using clap's derive API.
+/// The structure is parsed from command-line arguments and used to
+/// determine which operations to perform.
 #[derive(Parser, Debug)]
 #[command(name = "rscert")]
 #[command(version)]
@@ -92,6 +107,25 @@ struct Cli {
     domains: Vec<String>,
 }
 
+/// Main entry point for the rscert command-line tool.
+///
+/// Parses command-line arguments and executes the requested operations:
+/// - `-install`: Install the local CA to system trust stores
+/// - `-uninstall`: Remove the local CA from system trust stores
+/// - `-CAROOT`: Print the CA storage location
+/// - `<domains...>`: Generate certificates for specified hosts
+/// - `--csr <file>`: Generate certificate from a CSR
+///
+/// # Returns
+///
+/// `Ok(())` on success, or an error if any operation fails.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Invalid command-line arguments are provided
+/// - CA operations fail
+/// - Certificate generation fails
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
