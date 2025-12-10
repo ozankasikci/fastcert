@@ -75,6 +75,10 @@ struct Cli {
     #[arg(long, value_name = "CSR")]
     csr: Option<String>,
 
+    /// Enable verbose output
+    #[arg(short, long)]
+    verbose: bool,
+
     /// Domain names or IP addresses to generate certificates for
     #[arg(value_name = "DOMAINS")]
     domains: Vec<String>,
@@ -82,6 +86,13 @@ struct Cli {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // Set verbose mode if requested
+    if cli.verbose {
+        unsafe {
+            std::env::set_var("RSCERT_VERBOSE", "1");
+        }
+    }
 
     // Handle -CAROOT flag
     if cli.caroot {

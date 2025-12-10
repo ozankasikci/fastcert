@@ -9,3 +9,15 @@ pub mod truststore;
 pub mod fileutil;
 
 pub use error::{Error, Result};
+
+/// Check if verbose mode is enabled
+pub fn is_verbose() -> bool {
+    std::env::var("RSCERT_VERBOSE").is_ok()
+}
+
+/// Print verbose message
+pub fn verbose_print(msg: &str) {
+    if is_verbose() {
+        eprintln!("[VERBOSE] {}", msg);
+    }
+}
