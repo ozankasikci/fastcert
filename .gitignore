@@ -4,3 +4,4 @@ Cargo.lock
 *.p12
 *.pfx
 .DS_Store
+docs/plans/
