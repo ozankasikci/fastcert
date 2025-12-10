@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 [![Tests](https://img.shields.io/badge/tests-85%20passing-brightgreen.svg)](#testing)
+[![Coverage](assets/coverage.svg)](#testing)
 
 A simple zero-config tool for making locally-trusted development certificates.
 
@@ -369,6 +370,10 @@ cargo test --test security
 
 # Run with verbose output
 cargo test -- --nocapture
+
+# Generate code coverage report
+cargo install cargo-tarpaulin
+cargo tarpaulin --out Html --output-dir coverage
 ```
 
 ### Quality Assurance

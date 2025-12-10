@@ -12,3 +12,9 @@ test_cert.js
 start_server.sh
 *.local*.pem
 myapp.dev*.pem
+
+# Coverage reports (but allow the badge)
+coverage/
+cobertura.xml
+tarpaulin-report.html
+!assets/coverage.svg
