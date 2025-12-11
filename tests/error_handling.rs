@@ -300,10 +300,7 @@ fn test_serial_number_uniqueness() {
     // Generate 100 serial numbers
     for _ in 0..100 {
         let serial = generate_serial_number();
-        assert!(
-            serials.insert(serial),
-            "Serial numbers should be unique"
-        );
+        assert!(serials.insert(serial), "Serial numbers should be unique");
     }
 
     assert_eq!(serials.len(), 100, "Should have 100 unique serials");

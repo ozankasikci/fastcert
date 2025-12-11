@@ -108,7 +108,10 @@ fn test_ca_directory_creation() {
 
     let mut ca = fastcert::ca::CertificateAuthority::new(ca_dir.clone());
     let result = ca.load_or_create();
-    assert!(result.is_ok(), "Should create directory if it doesn't exist");
+    assert!(
+        result.is_ok(),
+        "Should create directory if it doesn't exist"
+    );
     assert!(ca_dir.exists(), "CA directory should be created");
 
     unsafe {
@@ -150,7 +153,10 @@ fn test_ca_generates_unique_serials() {
         let cert_pem = fs::read_to_string(&cert_file).unwrap();
 
         // Extract serial from certificate (simplified check - just ensure content differs)
-        assert!(serials.insert(cert_pem.clone()), "Certificates should differ");
+        assert!(
+            serials.insert(cert_pem.clone()),
+            "Certificates should differ"
+        );
     }
 
     unsafe {
@@ -217,7 +223,10 @@ fn test_multiple_ca_roots() {
     // Verify they're different
     let ca1_pem = fs::read_to_string(temp_dir1.path().join("rootCA.pem")).unwrap();
     let ca2_pem = fs::read_to_string(temp_dir2.path().join("rootCA.pem")).unwrap();
-    assert_ne!(ca1_pem, ca2_pem, "Different CAs should have different certs");
+    assert_ne!(
+        ca1_pem, ca2_pem,
+        "Different CAs should have different certs"
+    );
 
     unsafe {
         env::remove_var("CAROOT");

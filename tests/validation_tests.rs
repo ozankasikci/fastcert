@@ -207,7 +207,10 @@ fn test_create_cert_params_multiple() {
         "127.0.0.1".to_string(),
     ];
     let result = fastcert::cert::create_cert_params(&hosts);
-    assert!(result.is_ok(), "Should create cert params for multiple hosts");
+    assert!(
+        result.is_ok(),
+        "Should create cert params for multiple hosts"
+    );
 }
 
 #[test]
@@ -275,8 +278,7 @@ fn test_cert_chain_validation() {
     let ca_parsed = pem::parse(&ca_pem).unwrap();
 
     // Validate chain
-    let result =
-        fastcert::cert::validate_cert_chain(cert_parsed.contents(), ca_parsed.contents());
+    let result = fastcert::cert::validate_cert_chain(cert_parsed.contents(), ca_parsed.contents());
     assert!(result.is_ok(), "Certificate chain should be valid");
 
     unsafe {
