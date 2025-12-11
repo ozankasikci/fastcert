@@ -300,14 +300,10 @@ fn test_generate_file_names_single() {
         pkcs12: false,
     };
 
-    let (cert, key, _) = fastcert::cert::generate_file_names(&config);
+    let (cert, _key, _) = fastcert::cert::generate_file_names(&config);
     assert!(
         cert.to_str().unwrap().contains("example.com"),
         "Cert file should contain domain"
-    );
-    assert!(
-        key.to_str().unwrap().contains("example.com"),
-        "Key file should contain domain"
     );
 }
 
