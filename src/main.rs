@@ -13,7 +13,7 @@ use fastcert::Result;
 
 const AFTER_HELP: &str = "\
 EXAMPLES:
-    $ fastcert -install
+    $ fastcert --install
     Install the local CA in the system trust store.
 
     $ fastcert example.org
@@ -25,7 +25,7 @@ EXAMPLES:
     $ fastcert \"*.example.it\"
     Generate \"_wildcard.example.it.pem\" and \"_wildcard.example.it-key.pem\".
 
-    $ fastcert -uninstall
+    $ fastcert --uninstall
     Uninstall the local CA (but do not delete it).
 
 ENVIRONMENT:
@@ -110,9 +110,9 @@ struct Cli {
 /// Main entry point for the fastcert command-line tool.
 ///
 /// Parses command-line arguments and executes the requested operations:
-/// - `-install`: Install the local CA to system trust stores
-/// - `-uninstall`: Remove the local CA from system trust stores
-/// - `-CAROOT`: Print the CA storage location
+/// - `--install`: Install the local CA to system trust stores
+/// - `--uninstall`: Remove the local CA from system trust stores
+/// - `--CAROOT`: Print the CA storage location
 /// - `<domains...>`: Generate certificates for specified hosts
 /// - `--csr <file>`: Generate certificate from a CSR
 ///
@@ -151,10 +151,10 @@ fn main() -> Result<()> {
         }
     }
 
-    // Handle -CAROOT flag
+    // Handle --CAROOT flag
     if cli.caroot {
         if cli.install || cli.uninstall {
-            eprintln!("ERROR: you can't set -install/-uninstall and -CAROOT at the same time");
+            eprintln!("ERROR: you can't set --install/--uninstall and --CAROOT at the same time");
             std::process::exit(1);
         }
         println!("{}", fastcert::ca::get_caroot()?);
@@ -163,18 +163,18 @@ fn main() -> Result<()> {
 
     // Handle conflicting flags
     if cli.install && cli.uninstall {
-        eprintln!("ERROR: you can't set -install and -uninstall at the same time");
+        eprintln!("ERROR: you can't set --install and --uninstall at the same time");
         std::process::exit(1);
     }
 
     // Handle CSR conflicts
     if cli.csr.is_some() {
         if cli.pkcs12 || cli.ecdsa || cli.client {
-            eprintln!("ERROR: can only combine -csr with -install and -cert-file");
+            eprintln!("ERROR: can only combine --csr with --install and --cert-file");
             std::process::exit(1);
         }
         if !cli.domains.is_empty() {
-            eprintln!("ERROR: can't specify extra arguments when using -csr");
+            eprintln!("ERROR: can't specify extra arguments when using --csr");
             std::process::exit(1);
         }
     }
@@ -185,7 +185,7 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    // Handle -install mode
+    // Handle --install mode
     if cli.install {
         fastcert::ca::install()?;
         if cli.domains.is_empty() && cli.csr.is_none() {
@@ -193,7 +193,7 @@ fn main() -> Result<()> {
         }
     }
 
-    // Handle -uninstall mode
+    // Handle --uninstall mode
     if cli.uninstall {
         fastcert::ca::uninstall()?;
         return Ok(());

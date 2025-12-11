@@ -124,7 +124,7 @@ cargo build --release
 
 ```bash
 # Install local CA in system trust store
-fastcert -install
+fastcert --install
 
 # Generate certificate for a domain (RSA is the default)
 fastcert example.com
@@ -225,17 +225,17 @@ fastcert --csr mycsr.pem --cert-file mycert.pem
 
 View the CA certificate location:
 ```bash
-fastcert -CAROOT
+fastcert --CAROOT
 ```
 
 Install the CA in system trust stores:
 ```bash
-fastcert -install
+fastcert --install
 ```
 
 Uninstall the CA from system trust stores (but keep the certificate):
 ```bash
-fastcert -uninstall
+fastcert --uninstall
 ```
 
 ### Environment Variables
@@ -243,13 +243,13 @@ fastcert -uninstall
 Set a custom CA location:
 ```bash
 export CAROOT="$HOME/my-ca"
-fastcert -install
+fastcert --install
 ```
 
 Specify which trust stores to use:
 ```bash
 export TRUST_STORES="system,firefox,java"
-fastcert -install
+fastcert --install
 ```
 
 ## Platform Support
@@ -272,9 +272,9 @@ fastcert -install
 - `--csr FILE` - Generate certificate from an existing CSR
 
 **CA Management:**
-- `-install` - Install the local CA in system trust stores
-- `-uninstall` - Remove the local CA from system trust stores
-- `-CAROOT` - Print the CA certificate storage location
+- `--install` - Install the local CA in system trust stores
+- `--uninstall` - Remove the local CA from system trust stores
+- `--CAROOT` - Print the CA certificate storage location
 
 **Output Control:**
 - `-v, --verbose` - Enable verbose output
@@ -288,7 +288,7 @@ Set the directory where the CA certificate and key are stored. This allows you t
 
 ```bash
 export CAROOT="$HOME/my-custom-ca"
-fastcert -install
+fastcert --install
 ```
 
 **TRUST_STORES:**
@@ -301,7 +301,7 @@ Options:
 
 ```bash
 export TRUST_STORES="system,nss"
-fastcert -install
+fastcert --install
 ```
 
 **FASTCERT_VERBOSE:**
@@ -338,7 +338,7 @@ Both key types are fully supported. Choose based on your needs:
 
 ## How It Works
 
-When you run `fastcert -install`, it creates a new local certificate authority and installs it in your system trust store. When you generate certificates, they are signed by this local CA, making them trusted by your system.
+When you run `fastcert --install`, it creates a new local certificate authority and installs it in your system trust store. When you generate certificates, they are signed by this local CA, making them trusted by your system.
 
 The CA certificate and key are stored in:
 - macOS/Linux: `$HOME/.local/share/fastcert`
@@ -390,7 +390,7 @@ cargo tarpaulin --out Html --output-dir coverage
 **Problem:** Browser shows "Not Secure" or certificate warning.
 
 **Solutions:**
-1. Make sure you ran `fastcert -install` before generating certificates
+1. Make sure you ran `fastcert --install` before generating certificates
 2. Restart your browser **completely** (quit and reopen) after installing the CA
 3. Verify the certificate includes the domain you're accessing:
    - Include `localhost 127.0.0.1` if accessing via localhost
@@ -398,7 +398,7 @@ cargo tarpaulin --out Html --output-dir coverage
 4. On Linux, you may need to manually trust the CA certificate
 5. Verify the certificate is signed by the CA:
    ```bash
-   openssl verify -CAfile "$(fastcert -CAROOT)/rootCA.pem" yourcert.pem
+   openssl verify -CAfile "$(fastcert --CAROOT)/rootCA.pem" yourcert.pem
    ```
 
 ### Permission Denied
@@ -423,7 +423,7 @@ cargo tarpaulin --out Html --output-dir coverage
    # macOS
    brew install nss
    ```
-2. Run `fastcert -install` again
+2. Run `fastcert --install` again
 3. Restart Firefox
 
 ### Java Applications Not Trusting Certificates
@@ -432,7 +432,7 @@ cargo tarpaulin --out Html --output-dir coverage
 
 **Solutions:**
 1. Make sure Java is installed
-2. Run `fastcert -install` to add CA to Java trust store
+2. Run `fastcert --install` to add CA to Java trust store
 3. Restart Java applications
 
 ### CA Already Exists
@@ -442,16 +442,16 @@ cargo tarpaulin --out Html --output-dir coverage
 **Solution:**
 ```bash
 # Uninstall from trust stores
-fastcert -uninstall
+fastcert --uninstall
 
 # Find CA location
-fastcert -CAROOT
+fastcert --CAROOT
 
 # Delete the CA directory
-rm -rf $(fastcert -CAROOT)
+rm -rf $(fastcert --CAROOT)
 
 # Reinstall
-fastcert -install
+fastcert --install
 ```
 
 ### Wrong Domain in Certificate
@@ -474,12 +474,12 @@ Use the CAROOT environment variable:
 ```bash
 # Project 1
 export CAROOT="$HOME/ca-project1"
-fastcert -install
+fastcert --install
 fastcert project1.local
 
 # Project 2
 export CAROOT="$HOME/ca-project2"
-fastcert -install
+fastcert --install
 fastcert project2.local
 ```
 
@@ -514,7 +514,7 @@ While technically possible, it's not recommended. For internal services, conside
 ### Why does my browser still show a warning?
 
 Make sure:
-1. You ran `fastcert -install` before generating certificates
+1. You ran `fastcert --install` before generating certificates
 2. The certificate includes the exact domain/IP you're accessing
 3. You've restarted your browser after installation
 4. The certificate hasn't expired
@@ -526,9 +526,9 @@ Yes, but it's not recommended. You would need to copy the CA certificate to the 
 ### What happens if I lose my CA key?
 
 If you lose the CA key, you cannot generate new trusted certificates. You'll need to:
-1. Run `fastcert -uninstall` on all machines that trust the old CA
+1. Run `fastcert --uninstall` on all machines that trust the old CA
 2. Delete the CAROOT directory
-3. Run `fastcert -install` to create a new CA
+3. Run `fastcert --install` to create a new CA
 4. Regenerate all certificates
 
 ### How long are certificates valid?
@@ -548,7 +548,7 @@ Yes. You can mount the CA certificate into Docker containers and configure them 
 Yes. fastcert is designed to be scriptable. Example:
 ```bash
 #!/bin/bash
-fastcert -install
+fastcert --install
 for domain in app.local api.local db.local; do
     fastcert "$domain"
 done
