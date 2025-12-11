@@ -203,7 +203,7 @@ fn test_cert_expiry_calculation() {
     // The implementation uses 730 + 90 = 820 days (2 years + 3 months)
     // Allow for small time differences during test execution
     assert!(
-        diff >= 819 && diff <= 821,
+        (819..=821).contains(&diff),
         "Certificate should be valid for approximately 820 days, got {} days",
         diff
     );
