@@ -114,7 +114,7 @@ impl Default for KeyType {
 /// ```no_run
 /// # use fastcert::CA;
 /// let ca = CA::load_or_create()?;
-/// ca.issue_certificate()
+/// ca.issue_certificate()?
 ///     .domains(vec!["example.com".to_string()])
 ///     .build()?;
 /// # Ok::<(), fastcert::Error>(())
@@ -154,7 +154,7 @@ impl CertificateBuilder {
     /// ```no_run
     /// # use fastcert::CA;
     /// # let ca = CA::load_or_create()?;
-    /// ca.issue_certificate()
+    /// ca.issue_certificate()?
     ///     .domains(vec![
     ///         "example.com".to_string(),
     ///         "*.example.com".to_string(),
@@ -175,7 +175,7 @@ impl CertificateBuilder {
     /// ```no_run
     /// # use fastcert::{CA, KeyType};
     /// # let ca = CA::load_or_create()?;
-    /// ca.issue_certificate()
+    /// ca.issue_certificate()?
     ///     .domains(vec!["example.com".to_string()])
     ///     .key_type(KeyType::ECDSA)
     ///     .build()?;
@@ -193,7 +193,7 @@ impl CertificateBuilder {
     /// ```no_run
     /// # use fastcert::CA;
     /// # let ca = CA::load_or_create()?;
-    /// ca.issue_certificate()
+    /// ca.issue_certificate()?
     ///     .domains(vec!["client@example.com".to_string()])
     ///     .client_cert(true)
     ///     .build()?;

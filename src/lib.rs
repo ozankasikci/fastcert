@@ -26,9 +26,11 @@
 //!
 //! ```no_run
 //! use fastcert::{CA, KeyType};
+//! use std::path::PathBuf;
 //!
 //! // Custom CA location
-//! let ca = CA::new("/custom/path").load_or_create()?;
+//! let mut ca = CA::new(PathBuf::from("/custom/path"));
+//! ca.init_ca()?;
 //!
 //! // Certificate with all options
 //! ca.issue_certificate()?
@@ -88,7 +90,7 @@ pub fn generate_cert(domains: &[String]) -> Result<()> {
 /// Install the CA to system trust stores
 ///
 /// Convenience function that loads/creates the CA and installs it.
-/// For more control, use the ca module functions directly.
+/// For more control, use `CA::load_or_create()?.install()`.
 ///
 /// # Example
 ///
@@ -97,7 +99,8 @@ pub fn generate_cert(domains: &[String]) -> Result<()> {
 /// # Ok::<(), fastcert::Error>(())
 /// ```
 pub fn install() -> Result<()> {
-    ca::install()
+    let ca = CA::load_or_create()?;
+    ca.install()
 }
 
 /// Uninstall the CA from system trust stores
@@ -112,7 +115,9 @@ pub fn install() -> Result<()> {
 /// # Ok::<(), fastcert::Error>(())
 /// ```
 pub fn uninstall() -> Result<()> {
-    ca::uninstall()
+    let caroot = ca::get_caroot()?;
+    let ca = CA::new(std::path::PathBuf::from(caroot));
+    ca.uninstall()
 }
 
 /// Check if verbose mode is enabled

@@ -34,7 +34,7 @@ const ROOT_KEY_FILE: &str = "rootCA-key.pem";
 /// ca.install()?;
 ///
 /// // Issue a certificate
-/// ca.issue_certificate()
+/// ca.issue_certificate()?
 ///     .domains(vec!["localhost".to_string()])
 ///     .build()?;
 /// # Ok::<(), fastcert::Error>(())
@@ -131,32 +131,7 @@ fn get_caroot_path() -> Result<PathBuf> {
 /// - System trust store installation fails (may require elevated privileges)
 pub fn install() -> Result<()> {
     let ca = CA::load_or_create()?;
-
-    #[cfg(target_os = "macos")]
-    {
-        crate::truststore::install_macos(&ca.cert_path())?;
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        crate::truststore::install_linux(&ca.cert_path())?;
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        crate::truststore::install_windows(&ca.cert_path())?;
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    {
-        println!("Note: System trust store installation not yet implemented for this platform.");
-        println!(
-            "You may need to manually import the CA certificate from: {}",
-            ca.cert_path().display()
-        );
-    }
-
-    Ok(())
+    ca.install()
 }
 
 /// Uninstall the CA certificate from the system trust store.
@@ -179,36 +154,7 @@ pub fn uninstall() -> Result<()> {
     // Use new() instead of load_or_create() since we only need to check if
     // the cert exists and get its path - no need to initialize or create CA
     let ca = CA::new(caroot);
-
-    if !ca.cert_exists() {
-        println!("No CA certificate found to uninstall.");
-        return Ok(());
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        crate::truststore::uninstall_macos(&ca.cert_path())?;
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        crate::truststore::uninstall_linux(&ca.cert_path())?;
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        crate::truststore::uninstall_windows(&ca.cert_path())?;
-    }
-
-    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-    {
-        println!("Note: System trust store uninstallation not yet implemented for this platform.");
-        println!(
-            "You may need to manually remove the CA certificate from your system trust store."
-        );
-    }
-
-    Ok(())
+    ca.uninstall()
 }
 
 /// Get the CertificateAuthority instance for the default CAROOT location.
@@ -594,7 +540,7 @@ impl CertificateAuthority {
     /// ```no_run
     /// # use fastcert::CA;
     /// let ca = CA::load_or_create()?;
-    /// ca.issue_certificate()
+    /// ca.issue_certificate()?
     ///     .domains(vec!["example.com".to_string()])
     ///     .build()?;
     /// # Ok::<(), fastcert::Error>(())
@@ -614,6 +560,104 @@ impl CertificateAuthority {
             ca_cert_pem.clone(),
             ca_key_pem.clone(),
         ))
+    }
+
+    /// Install the CA certificate into the system trust store.
+    ///
+    /// Installs the CA certificate into the appropriate trust stores
+    /// for the current platform:
+    /// - macOS: System Keychain
+    /// - Linux: System CA certificates and NSS databases
+    /// - Windows: Windows Certificate Store
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on successful installation, or an error if installation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The CA certificate file doesn't exist
+    /// - System trust store installation fails (may require elevated privileges)
+    pub fn install(&self) -> Result<()> {
+        if !self.cert_exists() {
+            return Err(Error::Certificate(
+                "CA certificate does not exist. Call init_ca() first.".to_string(),
+            ));
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            crate::truststore::install_macos(&self.cert_path())?;
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            crate::truststore::install_linux(&self.cert_path())?;
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            crate::truststore::install_windows(&self.cert_path())?;
+        }
+
+        #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+        {
+            println!("Note: System trust store installation not yet implemented for this platform.");
+            println!(
+                "You may need to manually import the CA certificate from: {}",
+                self.cert_path().display()
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Uninstall the CA certificate from the system trust store.
+    ///
+    /// Removes the CA certificate from all system trust stores where it was
+    /// installed, but does not delete the CA certificate files themselves.
+    /// The certificate can be reinstalled later without regeneration.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on successful uninstallation, or an error if uninstallation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The CA certificate cannot be read
+    /// - System trust store uninstallation fails (may require elevated privileges)
+    pub fn uninstall(&self) -> Result<()> {
+        if !self.cert_exists() {
+            println!("No CA certificate found to uninstall.");
+            return Ok(());
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            crate::truststore::uninstall_macos(&self.cert_path())?;
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            crate::truststore::uninstall_linux(&self.cert_path())?;
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            crate::truststore::uninstall_windows(&self.cert_path())?;
+        }
+
+        #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+        {
+            println!("Note: System trust store uninstallation not yet implemented for this platform.");
+            println!(
+                "You may need to manually remove the CA certificate from your system trust store."
+            );
+        }
+
+        Ok(())
     }
 }
 
