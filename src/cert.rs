@@ -103,6 +103,173 @@ impl Default for KeyType {
     }
 }
 
+/// Builder for certificate generation
+///
+/// Created by calling `CA::issue_certificate()`. Configure the certificate
+/// parameters using the builder methods, then call `build()` to generate
+/// and save the certificate.
+///
+/// # Example
+///
+/// ```no_run
+/// # use fastcert::CA;
+/// let ca = CA::load_or_create()?;
+/// ca.issue_certificate()
+///     .domains(vec!["example.com".to_string()])
+///     .build()?;
+/// # Ok::<(), fastcert::Error>(())
+/// ```
+pub struct CertificateBuilder {
+    ca_cert_pem: String,
+    ca_key_pem: String,
+    domains: Vec<String>,
+    key_type: KeyType,
+    client_cert: bool,
+    validity_days: Option<u32>,
+    cert_file: Option<String>,
+    key_file: Option<String>,
+    p12_file: Option<String>,
+}
+
+impl CertificateBuilder {
+    /// Create a new certificate builder (internal use only)
+    pub(crate) fn new(ca_cert_pem: String, ca_key_pem: String) -> Self {
+        Self {
+            ca_cert_pem,
+            ca_key_pem,
+            domains: Vec::new(),
+            key_type: KeyType::default(),
+            client_cert: false,
+            validity_days: None,
+            cert_file: None,
+            key_file: None,
+            p12_file: None,
+        }
+    }
+
+    /// Set the domains for this certificate (required)
+    ///
+    /// Accepts DNS names, IP addresses, email addresses, and URIs.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use fastcert::CA;
+    /// # let ca = CA::load_or_create()?;
+    /// ca.issue_certificate()
+    ///     .domains(vec![
+    ///         "example.com".to_string(),
+    ///         "*.example.com".to_string(),
+    ///         "127.0.0.1".to_string(),
+    ///     ])
+    ///     .build()?;
+    /// # Ok::<(), fastcert::Error>(())
+    /// ```
+    pub fn domains(mut self, domains: Vec<String>) -> Self {
+        self.domains = domains;
+        self
+    }
+
+    /// Set the key type (default: RSA2048)
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use fastcert::{CA, KeyType};
+    /// # let ca = CA::load_or_create()?;
+    /// ca.issue_certificate()
+    ///     .domains(vec!["example.com".to_string()])
+    ///     .key_type(KeyType::ECDSA)
+    ///     .build()?;
+    /// # Ok::<(), fastcert::Error>(())
+    /// ```
+    pub fn key_type(mut self, key_type: KeyType) -> Self {
+        self.key_type = key_type;
+        self
+    }
+
+    /// Generate a client authentication certificate (default: false)
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use fastcert::CA;
+    /// # let ca = CA::load_or_create()?;
+    /// ca.issue_certificate()
+    ///     .domains(vec!["client@example.com".to_string()])
+    ///     .client_cert(true)
+    ///     .build()?;
+    /// # Ok::<(), fastcert::Error>(())
+    /// ```
+    pub fn client_cert(mut self, client: bool) -> Self {
+        self.client_cert = client;
+        self
+    }
+
+    /// Set certificate validity in days (default: 825)
+    ///
+    /// Note: 825 days is the maximum accepted by browsers.
+    pub fn validity_days(mut self, days: u32) -> Self {
+        self.validity_days = Some(days);
+        self
+    }
+
+    /// Set custom certificate file path (default: auto-generated)
+    ///
+    /// If not specified, the filename is generated from the first domain.
+    pub fn cert_file(mut self, path: impl Into<String>) -> Self {
+        self.cert_file = Some(path.into());
+        self
+    }
+
+    /// Set custom key file path (default: auto-generated)
+    ///
+    /// If not specified, the filename is generated from the first domain.
+    pub fn key_file(mut self, path: impl Into<String>) -> Self {
+        self.key_file = Some(path.into());
+        self
+    }
+
+    /// Set PKCS#12 file path and enable PKCS#12 mode
+    ///
+    /// When set, generates a .p12 file instead of separate PEM files.
+    pub fn pkcs12_file(mut self, path: impl Into<String>) -> Self {
+        self.p12_file = Some(path.into());
+        self
+    }
+
+    /// Generate the certificate and write to disk
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on success.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - No domains were specified
+    /// - Domain validation fails
+    /// - Certificate generation fails
+    /// - File writing fails
+    pub fn build(self) -> Result<()> {
+        if self.domains.is_empty() {
+            return Err(Error::Certificate("No domains specified. Use .domains() to set domains.".to_string()));
+        }
+
+        // Convert to CertificateConfig
+        let mut config = CertificateConfig::new(self.domains);
+        config.use_ecdsa = matches!(self.key_type, KeyType::ECDSA);
+        config.client_cert = self.client_cert;
+        config.pkcs12 = self.p12_file.is_some();
+        config.cert_file = self.cert_file.map(PathBuf::from);
+        config.key_file = self.key_file.map(PathBuf::from);
+        config.p12_file = self.p12_file.map(PathBuf::from);
+
+        // Call internal generation function
+        generate_certificate_internal(&config, &self.ca_cert_pem, &self.ca_key_pem)
+    }
+}
+
 impl HostType {
     /// Parse a host string into the appropriate HostType.
     ///
