@@ -1,13 +1,14 @@
 # fastcert
 
 [![Crates.io](https://img.shields.io/crates/v/fastcert.svg)](https://crates.io/crates/fastcert)
+[![Docs.rs](https://img.shields.io/docsrs/fastcert)](https://docs.rs/fastcert)
 [![Homebrew](https://img.shields.io/badge/homebrew-ozankasikci%2Ftap-orange.svg)](https://github.com/ozankasikci/homebrew-tap)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
-[![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-221%20passing-brightgreen.svg)](#testing)
 [![Coverage](assets/coverage.svg)](#testing)
 
-A simple zero-config tool for making locally-trusted development certificates.
+A Rust library and CLI tool for making locally-trusted development certificates with zero configuration.
 
 ## Table of Contents
 
@@ -19,6 +20,9 @@ A simple zero-config tool for making locally-trusted development certificates.
   - [From Source](#from-source)
   - [Prerequisites](#prerequisites)
   - [Platform-Specific Requirements](#platform-specific-requirements)
+- [Library Usage](#library-usage)
+  - [Basic Example](#basic-example)
+  - [Advanced Example](#advanced-example)
 - [Quick Start](#quick-start)
 - [Usage Examples](#usage-examples)
 - [Platform Support](#platform-support)
@@ -32,10 +36,14 @@ A simple zero-config tool for making locally-trusted development certificates.
 
 ## Overview
 
-fastcert is a command-line tool that makes it easy to create and manage locally-trusted development certificates. It works by creating a local certificate authority (CA) and then generating certificates signed by that CA. The CA certificate is installed in your system's trust store, making all certificates it signs trusted by your browsers and development tools.
+fastcert is a Rust library and command-line tool that makes it easy to create and manage locally-trusted development certificates. It works by creating a local certificate authority (CA) and then generating certificates signed by that CA. The CA certificate is installed in your system's trust store, making all certificates it signs trusted by your browsers and development tools.
+
+Use fastcert as a **library** to programmatically generate certificates in your Rust applications, or as a **CLI tool** for quick certificate generation from the command line.
 
 ## Features
 
+- **Library and CLI** - Use as a Rust library or command-line tool
+- **Ergonomic API** - Fluent builder pattern for easy certificate generation
 - Zero configuration required - works out of the box
 - Automatically creates and manages a local CA
 - Generates certificates for multiple domains and IP addresses
@@ -48,7 +56,7 @@ fastcert is a command-line tool that makes it easy to create and manage locally-
 - Integrates with system trust stores
 - Firefox and Java trust store support
 - Certificates properly signed by CA (not self-signed)
-- Comprehensive test coverage (85+ tests)
+- Comprehensive test coverage (221 tests)
 
 ## Installation
 
