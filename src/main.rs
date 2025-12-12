@@ -9,7 +9,7 @@
 //! - PKCS#12 bundle creation
 
 use clap::Parser;
-use fastcert::Result;
+use fastcert::{CA, KeyType, Result};
 
 const AFTER_HELP: &str = "\
 EXAMPLES:
@@ -187,7 +187,8 @@ fn main() -> Result<()> {
 
     // Handle --install mode
     if cli.install {
-        fastcert::ca::install()?;
+        let ca = CA::load_or_create()?;
+        ca.install()?;
         if cli.domains.is_empty() && cli.csr.is_none() {
             return Ok(());
         }
@@ -195,7 +196,7 @@ fn main() -> Result<()> {
 
     // Handle --uninstall mode
     if cli.uninstall {
-        fastcert::ca::uninstall()?;
+        fastcert::uninstall()?;
         return Ok(());
     }
 
@@ -207,15 +208,27 @@ fn main() -> Result<()> {
 
     // Handle regular certificate generation
     if !cli.domains.is_empty() {
-        fastcert::cert::generate_certificate(
-            &cli.domains,
-            cli.cert_file.as_deref(),
-            cli.key_file.as_deref(),
-            cli.p12_file.as_deref(),
-            cli.client,
-            cli.ecdsa,
-            cli.pkcs12,
-        )?;
+        let ca = CA::load_or_create()?;
+
+        let mut builder = ca.issue_certificate()?.domains(cli.domains.clone());
+
+        if cli.ecdsa {
+            builder = builder.key_type(KeyType::ECDSA);
+        }
+        if cli.client {
+            builder = builder.client_cert(true);
+        }
+        if let Some(ref f) = cli.cert_file {
+            builder = builder.cert_file(f);
+        }
+        if let Some(ref f) = cli.key_file {
+            builder = builder.key_file(f);
+        }
+        if let Some(ref f) = cli.p12_file {
+            builder = builder.pkcs12_file(f);
+        }
+
+        builder.build()?;
     }
 
     Ok(())
