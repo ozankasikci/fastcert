@@ -88,6 +88,21 @@ pub enum HostType {
     Uri(String),
 }
 
+/// Key type for certificate generation
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyType {
+    /// RSA 2048-bit key (default, maximum compatibility)
+    RSA2048,
+    /// ECDSA P-256 key (better performance, smaller keys)
+    ECDSA,
+}
+
+impl Default for KeyType {
+    fn default() -> Self {
+        Self::RSA2048
+    }
+}
+
 impl HostType {
     /// Parse a host string into the appropriate HostType.
     ///
