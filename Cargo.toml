@@ -2,14 +2,14 @@
 name = "fastcert"
 version = "0.4.0"
 edition = "2024"
-description = "A simple zero-config tool for making locally-trusted development certificates"
+description = "A library and CLI tool for making locally-trusted development certificates"
 license = "BSD-3-Clause"
 repository = "https://github.com/ozankasikci/fastcert"
 homepage = "https://github.com/ozankasikci/fastcert"
-documentation = "https://github.com/ozankasikci/fastcert#readme"
+documentation = "https://docs.rs/fastcert"
 readme = "README.md"
 keywords = ["certificate", "tls", "ssl", "development", "localhost"]
-categories = ["command-line-utilities", "development-tools"]
+categories = ["command-line-utilities", "development-tools", "cryptography"]
 authors = ["Ozan Kasikci <ozan@kasikci.io>"]
 
 [lib]
