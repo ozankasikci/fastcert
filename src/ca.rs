@@ -176,6 +176,8 @@ pub fn install() -> Result<()> {
 /// - System trust store uninstallation fails (may require elevated privileges)
 pub fn uninstall() -> Result<()> {
     let caroot = get_caroot_path()?;
+    // Use new() instead of load_or_create() since we only need to check if
+    // the cert exists and get its path - no need to initialize or create CA
     let ca = CA::new(caroot);
 
     if !ca.cert_exists() {
@@ -263,7 +265,7 @@ impl CertificateAuthority {
 
     /// Load existing CA or create new one in default location
     ///
-    /// This is a convenience method that combines `new()` and initialization.
+    /// This is a convenience method that combines `new()` and `init_ca()`.
     /// The CA location is determined by the `CAROOT` environment variable, or
     /// platform-specific defaults if not set.
     ///
@@ -289,6 +291,10 @@ impl CertificateAuthority {
     }
 
     /// Initialize the CA by loading existing or creating new certificate
+    ///
+    /// This is the instance method version that initializes an already-created
+    /// `CertificateAuthority` instance. For a static constructor that combines
+    /// creation and initialization, use `load_or_create()`.
     ///
     /// This method:
     /// 1. Creates the CA directory if needed
