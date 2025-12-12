@@ -56,7 +56,6 @@ Use fastcert as a **library** to programmatically generate certificates in your 
 - Integrates with system trust stores
 - Firefox and Java trust store support
 - Certificates properly signed by CA (not self-signed)
-- Comprehensive test coverage (221 tests)
 
 ## Installation
 
